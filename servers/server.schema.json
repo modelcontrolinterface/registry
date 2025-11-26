@@ -1,0 +1,285 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://modelcontrolinterface.com/schemas/mci-server-detail.json",
+  "title": "MCI Server Detail",
+  "description": "Schema for Model Control Interface (MCI) server metadata and configuration.",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Human-readable server name. Must be unique within the registry.",
+      "examples": ["Weather Service", "File Manager", "Database Query"],
+      "minLength": 3,
+      "maxLength": 100,
+      "pattern": "^[a-zA-Z0-9][a-zA-Z0-9 _-]*[a-zA-Z0-9]$"
+    },
+    "namespace": {
+      "type": "string",
+      "description": "Unique reverse-DNS format identifier for the server. Used to prevent naming conflicts across different publishers.",
+      "examples": ["com.example.weather", "io.github.username.filemanager"],
+      "pattern": "^[a-z][a-z0-9]*([.][a-z][a-z0-9]*)+$",
+      "minLength": 5,
+      "maxLength": 100
+    },
+    "description": {
+      "type": "string",
+      "description": "Clear explanation of what the server does, its main features, and use cases.",
+      "examples": [
+        "Provides real-time weather data and 7-day forecasts using the OpenWeatherMap API",
+        "Manages file operations including upload, download, search, and organization"
+      ],
+      "minLength": 10,
+      "maxLength": 500
+    },
+    "iconUrl": {
+      "type": "string",
+      "format": "uri",
+      "description": "HTTPS URL to a square icon representing the server (recommended: 256x256px PNG or SVG).",
+      "examples": ["https://static.example.com/icons/weather-256.png"],
+      "pattern": "^https://"
+    },
+    "version": {
+      "type": "string",
+      "description": "Semantic version following semver.org format (MAJOR.MINOR.PATCH with optional pre-release and build metadata).",
+      "examples": ["1.0.0", "2.3.1-beta", "1.0.0-alpha.1+build.123"],
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(-[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+)*)?(\\+[a-zA-Z0-9]+(\\.[a-zA-Z0-9]+)*)?$",
+      "minLength": 5,
+      "maxLength": 50
+    },
+    "homepage": {
+      "type": "string",
+      "format": "uri",
+      "description": "HTTPS URL to the server's homepage, documentation, or project website.",
+      "examples": [
+        "https://github.com/username/project",
+        "https://docs.example.com/weather-server"
+      ],
+      "pattern": "^https://"
+    },
+    "repository": {
+      "type": "string",
+      "format": "uri",
+      "description": "HTTPS URL to the server's source code repository (GitHub, GitLab, etc.).",
+      "examples": ["https://github.com/modelcontrolinterface/weather-server"],
+      "pattern": "^https://"
+    },
+    "authors": {
+      "type": "array",
+      "description": "List of people who created, contribute to, or maintain this server.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Full name of the author or contributor.",
+            "examples": ["Alice Doe", "Bob Smith"],
+            "minLength": 2,
+            "maxLength": 100
+          },
+          "email": {
+            "type": "string",
+            "format": "email",
+            "description": "Valid email address for contacting the author.",
+            "examples": ["alice@example.com"]
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Optional URL to the author's website, GitHub profile, or social media.",
+            "examples": ["https://github.com/alice"]
+          }
+        },
+        "required": ["name", "email"],
+        "additionalProperties": false
+      },
+      "minItems": 1,
+      "maxItems": 50
+    },
+    "license": {
+      "type": "array",
+      "description": "List of SPDX license identifiers. See https://spdx.org/licenses/ for valid identifiers.",
+      "examples": [["MIT"], ["Apache-2.0"], ["GPL-3.0-or-later", "MIT"]],
+      "items": {
+        "type": "string",
+        "minLength": 3,
+        "maxLength": 50,
+        "pattern": "^[a-zA-Z0-9.+-]+$"
+      },
+      "minItems": 1,
+      "maxItems": 5
+    },
+    "isVerified": {
+      "type": "boolean",
+      "description": "Indicates if this server has been officially verified by the MCI registry. This field should only be set by the registry authority, not by server authors.",
+      "default": false
+    },
+    "verifiedBy": {
+      "type": "string",
+      "description": "Name of the authority or registry that verified this server. Only present when isVerified is true.",
+      "examples": ["MCI Official Registry", "Enterprise Registry v2"],
+      "minLength": 3,
+      "maxLength": 100
+    },
+    "verifiedAt": {
+      "type": "string",
+      "format": "date-time",
+      "description": "ISO 8601 timestamp indicating when the server was verified.",
+      "examples": ["2024-01-15T10:30:00Z", "2024-03-20T14:45:30.123Z"]
+    },
+    "source": {
+      "type": "object",
+      "description": "Container image configuration specifying how to run this server.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for this container image definition within your system.",
+          "examples": ["weather-server-v1", "file-mgr-prod"],
+          "minLength": 3,
+          "maxLength": 100,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9_-]*$"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["docker"],
+          "description": "Container runtime type. Currently only 'docker' is supported.",
+          "default": "docker"
+        },
+        "name": {
+          "type": "string",
+          "description": "Full Docker image name including registry and namespace (e.g., 'docker.io/library/alpine' or 'myregistry.com/team/app').",
+          "examples": [
+            "alpine",
+            "ubuntu",
+            "ghcr.io/username/server",
+            "docker.io/library/redis"
+          ],
+          "minLength": 1,
+          "maxLength": 255,
+          "pattern": "^[a-z0-9]+([._-][a-z0-9]+)*(/[a-z0-9]+([._-][a-z0-9]+)*)*$"
+        },
+        "tag": {
+          "type": "string",
+          "description": "Docker image tag specifying the version or variant to use.",
+          "examples": ["latest", "v1.0.0", "alpine", "nanoserver-ltsc2022"],
+          "default": "latest",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9][a-zA-Z0-9._-]*$"
+        },
+        "digest": {
+          "type": "string",
+          "description": "SHA256 digest of the image for immutable identification and verification. Ensures you get exactly the intended image version.",
+          "pattern": "^sha256:[a-f0-9]{64}$",
+          "examples": [
+            "sha256:ab3c5d8f9e1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c"
+          ]
+        },
+        "config": {
+          "type": "object",
+          "description": "JSON Schema defining the configuration parameters this server accepts. Used to validate user-provided config at runtime.",
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": ["object"],
+              "description": "Must be 'object' for a valid JSON Schema root."
+            },
+            "properties": {
+              "type": "object",
+              "description": "Defines the configuration fields the server accepts.",
+              "additionalProperties": true
+            },
+            "required": {
+              "type": "array",
+              "description": "List of required configuration field names.",
+              "items": {
+                "type": "string"
+              }
+            }
+          },
+          "additionalProperties": true
+        },
+        "options": {
+          "type": "array",
+          "description": "Docker run flags and their arguments (e.g., port mappings, environment variables, volume mounts).",
+          "items": {
+            "type": "object",
+            "required": ["flag"],
+            "properties": {
+              "flag": {
+                "type": "string",
+                "description": "Docker CLI flag (short or long form).",
+                "examples": ["-p", "--env", "-v", "--memory", "--cpus"],
+                "pattern": "^-{1,2}[a-zA-Z0-9][a-zA-Z0-9-]*$"
+              },
+              "argument": {
+                "type": "string",
+                "description": "Value or argument for the flag. Can be omitted for boolean flags.",
+                "examples": [
+                  "8080:8080",
+                  "API_KEY=xyz123",
+                  "/data:/app/data",
+                  "512m",
+                  "2.0"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 100
+        },
+        "commands": {
+          "type": "array",
+          "description": "Pre-defined commands that can be executed within the container.",
+          "items": {
+            "type": "object",
+            "required": ["name", "value"],
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Human-readable command identifier used to invoke this command.",
+                "examples": ["start", "healthcheck", "migrate", "backup"],
+                "minLength": 1,
+                "maxLength": 50,
+                "pattern": "^[a-zA-Z][a-zA-Z0-9_-]*$"
+              },
+              "value": {
+                "type": "string",
+                "description": "Actual shell command and arguments executed in the container.",
+                "examples": [
+                  "python3 server.py",
+                  "./healthcheck.sh",
+                  "npm run migrate"
+                ],
+                "minLength": 1,
+                "maxLength": 500
+              },
+              "description": {
+                "type": "string",
+                "description": "Optional explanation of what this command does.",
+                "examples": [
+                  "Starts the main server process",
+                  "Runs database migrations"
+                ],
+                "maxLength": 200
+              }
+            },
+            "additionalProperties": false
+          },
+          "maxItems": 50
+        }
+      },
+      "required": ["id", "type", "name", "tag", "digest"],
+      "additionalProperties": false
+    }
+  },
+  "required": [
+    "name",
+    "namespace",
+    "description",
+    "version",
+    "authors",
+    "license",
+    "source"
+  ],
+  "additionalProperties": false
+}
