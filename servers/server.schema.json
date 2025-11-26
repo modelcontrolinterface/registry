@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://modelcontrolinterface.com/schemas/mci-server-detail.json",
+  "$id": "https://raw.githubusercontent.com/modelcontrolinterface/registry/refs/heads/main/servers/server.schema.json",
   "title": "MCI Server Detail",
   "description": "Schema for Model Control Interface (MCI) server metadata and configuration.",
   "type": "object",
