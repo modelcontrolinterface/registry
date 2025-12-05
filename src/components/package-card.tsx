@@ -2,7 +2,7 @@ import Link from "next/link"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Download, Calendar, Scale, Package, Server, Box, Container, CheckCircle } from "lucide-react"
+import { Download, Calendar, Scale, Package, Server, Box, Container, BadgeCheck } from "lucide-react"
 
 type PackageCategory = "interceptor" | "service" | "sandbox"
 
@@ -68,7 +68,7 @@ export function PackageCard({
 
   return (
     <Link href={`/services/${name}`} className="block group">
-      <Card className="w-full h-full flex flex-col justify-between border-2 transition-all duration-200 hover:shadow-lg hover:border-primary">
+      <Card className="w-full h-full flex flex-col justify-between transition-all duration-200 hover:shadow-lg hover:border-primary">
         <CardHeader className="space-y-3">
           <div className="flex items-start gap-3">
             {icon ? (
@@ -83,7 +83,7 @@ export function PackageCard({
                 <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
                   {displayName}
                 </CardTitle>
-                {verified && <CheckCircle className="w-3 h-3 text-destructive" />}
+                {verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
                 <Badge variant="outline" className="gap-1">
                   {getCategoryIcon(category)}
                   {category}
