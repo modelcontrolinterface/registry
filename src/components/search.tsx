@@ -18,10 +18,10 @@ export function SearchInput({ large = false }: SearchInputProps) {
           value={query}
           onKeyDown={handleKeyPress}
           onChange={(e) => setQuery(e.target.value)}
-          className="h-full pl-4 border-2"
+          className="h-full pl-4"
           placeholder="Search for a service"
         />
-      <Button onClick={submit} className="aspect-square h-full border-2">
+      <Button onClick={submit} className="aspect-square h-full">
         <Search />
       </Button>
     </div>
