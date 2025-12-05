@@ -3,21 +3,12 @@ import { Navbar } from "@/components/navbar";
 import { Footer } from "@/components/footer";
 
 import type { Metadata } from "next";
-import { Cairo, Lora, JetBrains_Mono } from "next/font/google";
+import { Space_Mono } from "next/font/google";
 
-const cairo = Cairo({
-  variable: "--font-sans",
+const space = Space_Mono({
+  weight: "400",
   subsets: ['latin'],
-});
-
-const lora = Lora({
-  variable: "--font-serif",
-  subsets: ['latin'],
-});
-
-const jetbrains = JetBrains_Mono({
-  variable: "--font-mono",
-  subsets: ['latin'],
+  variable: "--font-mono"
 });
 
 export const metadata: Metadata = {
@@ -34,7 +25,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${cairo.variable} ${lora.variable} ${jetbrains.variable}`}>
+    <html lang="en" className={`${space.variable}`}>
       <body className="antialiased dark">
         <Navbar/>
         {children}

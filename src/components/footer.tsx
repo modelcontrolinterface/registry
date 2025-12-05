@@ -11,10 +11,10 @@ export function Footer() {
         <div className="space-y-2">
           <Link
             href="/"
-            className="space-y-2 text-muted-foreground hover:text-foreground"
+            className="space-y-2"
           >
             <img src="/logo.svg" alt="MCI Logo" className="h-10 w-auto" />
-            <span>Model Control Interface Registry</span>
+            <span className="text-sm text-muted-foreground hover:text-foreground">MCI Registry</span>
           </Link>
         </div>
 

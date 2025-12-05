@@ -37,9 +37,9 @@
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
 
-  --font-sans: var(--font-sans);
+  --font-sans: var(--font-mono);
   --font-mono: var(--font-mono);
-  --font-serif: var(--font-serif);
+  --font-serif: var(--font-mono);
 
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -89,9 +89,7 @@
   --sidebar-accent-foreground: oklch(0.3394 0.0441 1.7583);
   --sidebar-border: oklch(0.8719 0.0198 302.169);
   --sidebar-ring: oklch(0.6104 0.0767 299.7335);
-  --font-sans: Cairo, ui-sans-serif, sans-serif, system-ui;
-  --font-serif: "Lora", Georgia, serif;
-  --font-mono: JetBrains Mono, ui-monospace, monospace;
+  --font-mono: Space Mono, ui-monospace, monospace;
   --radius: 0.5rem;
   --shadow-x: 1px;
   --shadow-y: 2px;
