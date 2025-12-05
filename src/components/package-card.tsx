@@ -90,7 +90,7 @@ export function PackageCard({
                 </Badge>
               </div>
               <div className="flex items-center gap-2 flex-wrap">
-                <p href={`/user/${name}`} className="text-xs text-muted-foreground hover:underline">{author.displayName}</p>
+                <p className="text-xs text-muted-foreground">{author.displayName}</p>
               </div>
             </div>
           </div>
