@@ -6,7 +6,7 @@ import { SearchInput } from "@/components/search"
 export default function Home() {
 
   return (
-    <div className="h-dvh flex flex-col items-center justify-center bg-background">
+    <div className="h-svh flex flex-col items-center justify-center bg-background">
       <div
         className={cn(
           "absolute inset-0",
