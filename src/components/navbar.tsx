@@ -4,7 +4,7 @@ import { useState } from "react"
 import { usePathname } from "next/navigation"
 
 import Link from "next/link"
-import { Input } from "@/components/ui/input"
+import Logo from "@/components/logo"
 import { Button } from "@/components/ui/button"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
@@ -32,7 +32,7 @@ export function Navbar() {
     <nav className="relative z-50 w-full px-4 border-b border-border bg-background">
       <div className="container h-16 mx-auto flex items-center justify-between">
         <Link href="/">
-          <img src="/logo.svg" alt="Logo" className="h-8 w-auto" />
+          <Logo className="h-8 w-auto"/>
         </Link>
 
         {pathname !== "/" && (

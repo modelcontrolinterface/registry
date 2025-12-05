@@ -1,6 +1,7 @@
 "use client"
 
 import Link from "next/link"
+import Logo from "@/components/logo"
 import { Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -13,7 +14,7 @@ export function Footer() {
             href="/"
             className="space-y-2"
           >
-            <img src="/logo.svg" alt="MCI Logo" className="h-10 w-auto" />
+            <Logo className="h-10 w-auto"/>
             <span className="text-sm text-muted-foreground hover:text-foreground">MCI Registry</span>
           </Link>
         </div>
