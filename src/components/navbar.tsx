@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, Suspense } from "react"
 import { usePathname } from "next/navigation"
 
 import Link from "next/link"
@@ -37,7 +37,9 @@ export function Navbar() {
 
         {pathname !== "/" && (
           <div className="flex-1 max-w-md mx-4">
-            <SearchInput />
+            <Suspense fallback={<div>Loading...</div>}>
+              <SearchInput />
+            </Suspense>
           </div>
         )}
 

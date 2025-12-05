@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { Kbd } from "@/components/ui/kbd"
@@ -26,7 +27,9 @@ export default function Home() {
           </p>
         </div>
 
-        <SearchInput large />
+        <Suspense fallback={<div>Loading...</div>}>
+          <SearchInput large />
+        </Suspense>
 
         <Link href="/search">Explore</Link>
 
