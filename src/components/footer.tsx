@@ -5,7 +5,7 @@ import Logo from "@/components/logo"
 import { Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
-export function Footer() {
+const Footer = () => {
   return (
     <footer className="py-10 px-10 bg-background border-t border-border">
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-10 max-w-6xl mx-auto">
@@ -53,3 +53,5 @@ export function Footer() {
     </footer>
   )
 }
+
+export default Footer

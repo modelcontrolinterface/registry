@@ -1,0 +1,93 @@
+import Link from "next/link"
+import ServiceBadge from "@/components/service-badge"
+import { Download, Calendar, Server, BadgeCheck } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+
+interface ServiceCardProps {
+  id: string
+  type: string
+  name: string
+  icon?: string
+  is_verified: boolean
+  downloads: number
+  updated_at: Date
+  description: string | null
+  default_version: string | null
+}
+
+const ServiceCard = ({
+  id,
+  name,
+  type,
+  icon,
+  downloads,
+  updated_at,
+  is_verified,
+  description,
+  default_version,
+}: ServiceCardProps) => {
+  const formatDownloads = (count: number) => {
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
+    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+    return count.toString()
+  }
+
+  const formatDate = (d: Date) => {
+    const now = new Date()
+    const diffTime = Math.abs(now.getTime() - d.getTime())
+    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
+
+    if (diffDays === 0) return "today"
+    if (diffDays === 1) return "yesterday"
+    if (diffDays < 30) return `${diffDays}d ago`
+    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
+    return `${Math.floor(diffDays / 365)}y ago`
+  }
+
+  return (
+    <Link href={`/service/${id}`} className="block group">
+      <Card className="w-full h-full flex flex-col justify-between transition-all duration-200 hover:shadow-lg hover:border-primary">
+        <CardHeader className="space-y-2">
+          <div className="flex items-start gap-3">
+            <div className="w-14 h-14 rounded-2xl overflow-hidden">
+              {icon ? (
+                <img src={icon} alt={name} className="h-full w-auto aspect-square rounded" />
+              ) : (
+                <div className="h-full w-auto aspect-square rounded bg-background flex items-center justify-center">
+                  <Server className="w-6 h-6 text-muted-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-1 flex-wrap">
+                <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
+                  {name}
+                </CardTitle>
+                {is_verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
+              </div>
+              <ServiceBadge type={type}/>
+            </div>
+          </div>
+          <CardDescription className="line-clamp-2">{description? description : "No description yet :("}</CardDescription>
+        </CardHeader>
+
+        <CardContent className="space-y-2">
+          <div className="flex items-center justify-between text-sm">
+            <span className="text-muted-foreground">v{default_version? default_version : "0.0.0"}</span>
+            <div className="flex items-center gap-1 text-muted-foreground">
+              <Download className="w-3.5 h-3.5" />
+              <span>{formatDownloads(downloads)}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1">
+            <Calendar className="w-3.5 h-3.5" />
+            <span>{formatDate(updated_at)}</span>
+          </div>
+        </CardContent>
+      </Card>
+    </Link>
+  )
+}
+
+export default ServiceCard

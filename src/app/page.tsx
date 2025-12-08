@@ -1,11 +1,13 @@
-import { Suspense } from "react"
-import Link from "next/link"
-import { cn } from "@/lib/utils"
-import { Kbd } from "@/components/ui/kbd"
-import { SearchInput } from "@/components/search"
+import { Suspense } from "react";
 
-export default function Home() {
+import Link from "next/link";
+import { cn } from "@/lib/utils";
+import { Kbd } from "@/components/ui/kbd";
+import SearchInput from "@/components/search";
+import { Skeleton } from "@/components/ui/skeleton";
+import StatsSection from "@/components/stats-section";
 
+const Home = () => {
   return (
     <div className="h-svh flex flex-col items-center justify-center bg-background">
       <div
@@ -23,11 +25,11 @@ export default function Home() {
             MCI Registry
           </h1>
           <p className="text-muted-foreground md:text-lg tracking-wide">
-            Publish, find and install all your services
+            Publish, find, and install all your services
           </p>
         </div>
 
-        <Suspense fallback={<div>Loading...</div>}>
+        <Suspense fallback={<Skeleton className="h-16 w-full rounded-md" />}>
           <SearchInput large />
         </Suspense>
 
@@ -38,24 +40,18 @@ export default function Home() {
           <span>to quick search</span>
         </div>
 
-
-      <div className="z-10 w-full flex items-center justify-center sm:justify-between gap-8 mt-8 px-4">
-        <div className="flex flex-col items-center text-center">
-          <span className="text-2xl sm:text-3xl font-bold text-foreground">1,245</span>
-          <span className="text-muted-foreground">Services</span>
-        </div>
-
-        <div className="flex flex-col items-center text-center">
-          <span className="text-2xl sm:text-3xl font-bold text-foreground">56,320</span>
-          <span className="text-muted-foreground">Downloads</span>
-        </div>
-
-        <div className="flex flex-col items-center text-center">
-          <span className="text-2xl sm:text-3xl font-bold text-foreground">4,102</span>
-          <span className="text-muted-foreground">Releases</span>
-        </div>
-      </div>
+        <Suspense fallback={
+          <div className="z-10 w-full flex items-center justify-center sm:justify-between gap-8 mt-8 px-4">
+            <Skeleton className="h-16 w-1/3 rounded-md" />
+            <Skeleton className="h-16 w-1/3 rounded-md" />
+            <Skeleton className="h-16 w-1/3 rounded-md" />
+          </div>
+        }>
+          <StatsSection />
+        </Suspense>
       </div>
     </div>
-  )
-}
+  );
+};
+
+export default Home;

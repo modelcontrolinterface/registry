@@ -1,9 +1,10 @@
-import "./globals.css";
-import { Navbar } from "@/components/navbar";
-import { Footer } from "@/components/footer";
-
 import type { Metadata } from "next";
+
+import "./globals.css";
+import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 import { Space_Mono } from "next/font/google";
+
 
 const space = Space_Mono({
   weight: "400",
@@ -19,11 +20,7 @@ export const metadata: Metadata = {
   `,
 };
 
-export default function RootLayout({
-  children
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+const RootLayout = async ({ children }: { children: React.ReactNode; }) => {
   return (
     <html lang="en" className={`${space.variable}`}>
       <body className="antialiased dark">
@@ -34,3 +31,5 @@ export default function RootLayout({
     </html>
   );
 }
+
+export default RootLayout

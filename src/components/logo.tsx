@@ -1,6 +1,6 @@
 interface LogoProps { className: string }
 
-export default function Logo({ className }: LogoProps) {
+const Logo = ({ className }: LogoProps) => {
   return (
   <svg width="100" height="46" viewBox="0 0 100 46" className={className + " fill-foreground"} xmlns="http://www.w3.org/2000/svg">
     <path d="M7.44331e-06 4.89362C7.44331e-06 2.19095 2.18398 0 4.87806 0H9.75611C12.4502 0 14.6342 2.19095 14.6342 4.89362V41.1064C14.6342 43.8091 12.4502 46 9.75611 46H4.87806C2.18398 46 7.44331e-06 43.8091 7.44331e-06 41.1064V4.89362Z" fill="inherit"/>
@@ -14,3 +14,5 @@ export default function Logo({ className }: LogoProps) {
   </svg>
   )
 }
+
+export default Logo

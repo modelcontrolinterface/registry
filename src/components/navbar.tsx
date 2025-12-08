@@ -1,11 +1,14 @@
 "use client"
 
-import { useState, Suspense } from "react"
+import { User } from "@supabase/supabase-js"
 import { usePathname } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
+import { Suspense, useEffect, useState } from "react"
 
 import Link from "next/link"
 import Logo from "@/components/logo"
 import { Button } from "@/components/ui/button"
+import NewServiceModal from "@/components/new-service-modal"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -14,67 +17,139 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
-import { SearchInput } from "@/components/search"
+import SearchInput from "@/components/search"
+import { Skeleton } from "@/components/ui/skeleton"
 
-export function Navbar() {
+interface UserProfile {
+  id: string
+  username: string
+  avatar_url?: string
+  display_name: string
+}
+
+const Navbar = () => {
   const pathname = usePathname()
-  const [isSignedIn, setIsSignedIn] = useState(true)
+  const supabase = createClient()
 
-  const user = {
-    name: "0x15BA88FF",
-    avatar: "https://avatars.githubusercontent.com/u/86390213?v=4",
+  const [loading, setLoading] = useState(true)
+  const [user, setUser] = useState<User | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+
+  useEffect(() => {
+    const loadUser = async () => {
+      setLoading(true)
+      try {
+        const { data: { user }, error } = await supabase.auth.getUser()
+
+        if (error || !user) {
+          setUser(null)
+          setUserProfile(null)
+          return
+        }
+
+        setUser(user)
+
+        const response = await fetch(`/api/v1/user-by-id/${user.id}`)
+        if (response.ok) {
+          const data = await response.json()
+          setUserProfile(data)
+        }
+      } catch (error) {
+        console.error("Error loading user:", error)
+        setUser(null)
+        setUserProfile(null)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadUser()
+  }, [])
+
+  const handleSignInWithGithub = async () => {
+    await supabase.auth.signInWithOAuth({
+      provider: "github",
+      options: {
+        redirectTo: `${window.location.origin}/`,
+      },
+    })
   }
 
-  const handleSignIn = () => setIsSignedIn(true)
-  const handleSignOut = () => setIsSignedIn(false)
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    setUser(null)
+    setUserProfile(null)
+  }
 
   return (
     <nav className="relative z-50 w-full px-4 border-b border-border bg-background">
       <div className="container h-16 mx-auto flex items-center justify-between">
         <Link href="/">
-          <Logo className="h-8 w-auto"/>
+          <Logo className="h-8 w-auto" />
         </Link>
 
         {pathname !== "/" && (
           <div className="flex-1 max-w-md mx-4">
-            <Suspense fallback={<div>Loading...</div>}>
+            <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded-md" />}>
               <SearchInput />
             </Suspense>
           </div>
         )}
 
-        <div>
-          {!isSignedIn ? (
-            <Button onClick={handleSignIn} variant="outline">
+        <div className="flex items-center gap-4">
+          {loading ? (
+            <Skeleton className="h-10 w-10 rounded-full" />
+          ) : !user || !userProfile ? (
+            <Button onClick={handleSignInWithGithub} variant="outline">
               Sign in with GitHub
             </Button>
           ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Avatar className="cursor-pointer">
-                  <AvatarImage src={user.avatar} alt={user.name} />
-                  <AvatarFallback>{user.name[0]}</AvatarFallback>
-                </Avatar>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem asChild>
-                  <Link href="/profile">Profile</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/dashboard">Dashboard</Link>
-                </DropdownMenuItem>
-                <DropdownMenuItem asChild>
-                  <Link href="/account">Account Settings</Link>
-                </DropdownMenuItem>
-                <DropdownMenuSeparator/>
-                <DropdownMenuItem onClick={handleSignOut}>
-                  Sign Out
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary transition-all">
+                    <AvatarImage src={userProfile.avatar_url || ""} />
+                    <AvatarFallback>{userProfile.display_name?.[0]}</AvatarFallback>
+                  </Avatar>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-56">
+                  <div className="flex items-center gap-2 p-2">
+                    <div className="flex flex-col space-y-1">
+                      <p className="font-medium">{userProfile.display_name}</p>
+                      {userProfile.username && (
+                        <p className="text-sm text-muted-foreground">{userProfile.username}</p>
+                      )}
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <NewServiceModal/>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem asChild>
+                    <Link href={`/user/${userProfile.username}`}>Profile</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild disabled>
+                    <Link href="/dashboard">Dashboard</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild disabled>
+                    <Link href="/settings">Settings</Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem
+                    onClick={handleSignOut}
+                    className="text-destructive"
+                  >
+                    Sign Out
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </>
           )}
         </div>
       </div>
     </nav>
   )
 }
+
+export default Navbar
