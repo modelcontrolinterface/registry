@@ -88,8 +88,9 @@ const Navbar = () => {
           <Logo className="h-8 w-auto" />
         </Link>
 
+        {/* Search for larger screens (hidden on small) */}
         {pathname !== "/" && (
-          <div className="flex-1 max-w-md mx-4">
+          <div className="hidden md:flex flex-1 mx-2 md:mx-4 md:max-w-md">
             <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded-md" />}>
               <SearchInput />
             </Suspense>
@@ -148,6 +149,15 @@ const Navbar = () => {
           )}
         </div>
       </div>
+
+      {/* Search for small screens (hidden on large) */}
+      {pathname !== "/" && (
+        <div className="block md:hidden w-full py-2">
+          <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded-md" />}>
+            <SearchInput />
+          </Suspense>
+        </div>
+      )}
     </nav>
   )
 }
