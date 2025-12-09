@@ -67,7 +67,13 @@ export const useSearch = () => {
 
         const json: GetServicesApiResponse = await res.json();
 
-        setServices(json.services || []);
+        const processedServices = json.services.map(service => ({
+          ...service,
+          updated_at: new Date(service.updated_at),
+          createdAt: new Date(service.createdAt),
+        }));
+
+        setServices(processedServices || []);
         setPagination(json.pagination || null);
       } catch (err: any) {
         if (err.name === "AbortError") return;
