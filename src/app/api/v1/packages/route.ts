@@ -109,7 +109,6 @@ const getPackages = async (
       default:
         baseQuery = baseQuery.orderBy(
           desc(packages.is_verified),
-          desc(packages.downloads),
           desc(packages.updated_at),
         );
         break;
