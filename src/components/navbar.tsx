@@ -8,7 +8,7 @@ import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import Logo from "@/components/logo"
 import { Button } from "@/components/ui/button"
-import NewServiceModal from "@/components/new-service-modal"
+import NewPackageModal from "@/components/new-package-modal"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -115,12 +115,11 @@ const Navbar = () => {
                   <div className="flex items-center gap-2 p-2">
                     <div className="flex flex-col space-y-1">
                       <p className="font-medium">{userProfile.display_name}</p>
-
                     </div>
                   </div>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <NewServiceModal/>
+                    <NewPackageModal/>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
