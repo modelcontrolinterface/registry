@@ -22,7 +22,6 @@ import { Skeleton } from "@/components/ui/skeleton"
 
 interface UserProfile {
   id: string
-  username: string
   avatar_url?: string
   display_name: string
 }
@@ -49,10 +48,10 @@ const Navbar = () => {
 
         setUser(user)
 
-        const response = await fetch(`/api/v1/user-by-id/${user.id}`)
+        const response = await fetch(`/api/v1/users/${user.id}`)
         if (response.ok) {
           const data = await response.json()
-          setUserProfile(data)
+          setUserProfile(data.user)
         }
       } catch (error) {
         console.error("Error loading user:", error)
@@ -88,7 +87,6 @@ const Navbar = () => {
           <Logo className="h-8 w-auto" />
         </Link>
 
-        {/* Search for larger screens (hidden on small) */}
         {pathname !== "/" && (
           <div className="hidden md:flex flex-1 mx-2 md:mx-4 md:max-w-md">
             <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded-md" />}>
@@ -117,9 +115,7 @@ const Navbar = () => {
                   <div className="flex items-center gap-2 p-2">
                     <div className="flex flex-col space-y-1">
                       <p className="font-medium">{userProfile.display_name}</p>
-                      {userProfile.username && (
-                        <p className="text-sm text-muted-foreground">{userProfile.username}</p>
-                      )}
+
                     </div>
                   </div>
                   <DropdownMenuSeparator />
@@ -128,7 +124,7 @@ const Navbar = () => {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <Link href={`/user/${userProfile.username}`}>Profile</Link>
+                    <Link href={`/users/${userProfile.id}`}>Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild disabled>
                     <Link href="/dashboard">Dashboard</Link>
@@ -150,7 +146,6 @@ const Navbar = () => {
         </div>
       </div>
 
-      {/* Search for small screens (hidden on large) */}
       {pathname !== "/" && (
         <div className="block md:hidden w-full py-2">
           <Suspense fallback={<div className="h-10 w-full animate-pulse bg-muted rounded-md" />}>
