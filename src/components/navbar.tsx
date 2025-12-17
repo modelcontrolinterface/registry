@@ -8,7 +8,6 @@ import { Suspense, useEffect, useState } from "react"
 import Link from "next/link"
 import Logo from "@/components/logo"
 import { Button } from "@/components/ui/button"
-import NewPackageModal from "@/components/new-package-modal"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -112,16 +111,6 @@ const Navbar = () => {
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
-                  <div className="flex items-center gap-2 p-2">
-                    <div className="flex flex-col space-y-1">
-                      <p className="font-medium">{userProfile.display_name}</p>
-                    </div>
-                  </div>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <NewPackageModal/>
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
                     <Link href={`/users/${userProfile.id}`}>Profile</Link>
                   </DropdownMenuItem>

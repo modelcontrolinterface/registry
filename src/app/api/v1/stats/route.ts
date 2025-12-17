@@ -1,10 +1,10 @@
 import { count, sql } from "drizzle-orm";
 import { NextResponse } from "next/server";
-import { services, service_versions } from "@/db/schema";
+import { packages, package_versions } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
 export type RegistryStats = {
-  services: number;
+  packages: number;
   releases: number;
   downloads: number;
 };
@@ -12,18 +12,18 @@ export type RegistryStats = {
 export const GET = async () => {
   try {
     const { rls } = await createDrizzleSupabaseClient();
-    const [servicesCount, releasesCount, downloadsSum] = await Promise.all([
-      rls((db) => db.select({ value: count() }).from(services)),
-      rls((db) => db.select({ value: count() }).from(service_versions)),
+    const [packagesCount, releasesCount, downloadsSum] = await Promise.all([
+      rls((db) => db.select({ value: count() }).from(packages)),
+      rls((db) => db.select({ value: count() }).from(package_versions)),
       rls((db) =>
         db
-          .select({ value: sql<number>`sum(${service_versions.downloads})` })
-          .from(service_versions),
+          .select({ value: sql<number>`sum(${package_versions.downloads})` })
+          .from(package_versions),
       ),
     ]);
 
     const stats: RegistryStats = {
-      services: servicesCount[0].value,
+      packages: packagesCount[0].value,
       releases: releasesCount[0].value,
       downloads: downloadsSum[0].value ?? 0,
     };

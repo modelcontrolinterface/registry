@@ -7,13 +7,13 @@ export const useSearch = () => {
   const searchParams = useSearchParams();
 
   const initialQuery = searchParams.get("q") || "";
-  const initialType = searchParams.get("type") || "all";
+  const initialCategories = searchParams.get("categories") || "all";
   const initialPage = Number(searchParams.get("page")) || 1;
   const initialSort = searchParams.get("sort") || "relevance";
   const initialVerified = searchParams.get("verified") || "all";
 
   const [query] = useState(initialQuery);
-  const [type, setType] = useState<string>(initialType);
+  const [categories, setCategories] = useState<string>(initialCategories);
   const [page, setPage] = useState<number>(initialPage);
   const [sort, setSort] = useState<string>(initialSort);
   const [verified, setVerified] = useState<string>(initialVerified);
@@ -30,13 +30,13 @@ export const useSearch = () => {
     const params = new URLSearchParams();
 
     if (query) params.set("q", query);
-    if (type !== "all") params.set("type", type);
+    if (categories !== "all") params.set("categories", categories);
     if (sort !== "relevance") params.set("sort", sort);
     if (page !== 1) params.set("page", String(page));
     if (verified !== "all") params.set("verified", verified);
 
     router.push(`/search?${params.toString()}`, { scroll: false });
-  }, [type, page, sort, verified, query, router]);
+  }, [categories, page, sort, verified, query, router]);
 
   useEffect(() => {
     const controller = new AbortController();
@@ -50,7 +50,7 @@ export const useSearch = () => {
         const params = new URLSearchParams();
 
         if (query) params.set("q", query);
-        if (type !== "all") params.set("type", type);
+        if (categories !== "all") params.set("categories", categories);
         if (sort) params.set("sort", sort);
         if (page) params.set("page", String(page));
 
@@ -88,7 +88,7 @@ export const useSearch = () => {
 
     fetchData();
     return () => controller.abort();
-  }, [query, type, sort, page, verified]);
+  }, [query, categories, sort, page, verified]);
 
   const handleSortChange = (value: string) => {
     setSort(value);
@@ -100,8 +100,8 @@ export const useSearch = () => {
     setPage(1);
   };
 
-  const handleTypeChange = (value: string) => {
-    setType(value);
+  const handleCategoriesChange = (value: string) => {
+    setCategories(value);
     setPage(1);
   };
 
@@ -111,7 +111,7 @@ export const useSearch = () => {
 
   return {
     query,
-    type,
+    categories,
     page,
     sort,
     verified,
@@ -122,7 +122,7 @@ export const useSearch = () => {
     pagination,
     handleSortChange,
     handleVerifiedChange,
-    handleTypeChange,
+    handleCategoriesChange,
     handlePageChange,
   };
 };

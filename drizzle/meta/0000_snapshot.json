@@ -1,5 +1,5 @@
 {
-  "id": "1752d2bb-cc6d-4450-bfd2-269bd7270699",
+  "id": "2e69888a-a4f9-4af9-a6b3-fe8f7054a2e2",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -27,15 +27,21 @@
           "primaryKey": false,
           "notNull": true
         },
-        "service_id": {
-          "name": "service_id",
+        "package_id": {
+          "name": "package_id",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
         },
-        "service_version_id": {
-          "name": "service_version_id",
+        "package_version_id": {
+          "name": "package_version_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "metadata": {
+          "name": "metadata",
+          "type": "jsonb",
           "primaryKey": false,
           "notNull": false
         },
@@ -62,6 +68,51 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "audits_user_id_idx": {
+          "name": "audits_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audits_package_id_idx": {
+          "name": "audits_package_id_idx",
+          "columns": [
+            {
+              "expression": "package_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "audits_action_idx": {
+          "name": "audits_action_idx",
+          "columns": [
+            {
+              "expression": "action",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
@@ -75,15 +126,15 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "audits_service_id_services_id_fk": {
-          "name": "audits_service_id_services_id_fk",
+        "audits_package_id_packages_id_fk": {
+          "name": "audits_package_id_packages_id_fk",
           "tableFrom": "audits",
-          "tableTo": "services",
+          "tableTo": "packages",
           "columnsFrom": [
-            "service_id"
+            "package_id"
           ],
           "columnsTo": [
             "id"
@@ -91,17 +142,17 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "audits_service_version_id_service_versions_id_fk": {
-          "name": "audits_service_version_id_service_versions_id_fk",
+        "audits_package_version_id_package_versions_id_fk": {
+          "name": "audits_package_version_id_package_versions_id_fk",
           "tableFrom": "audits",
-          "tableTo": "service_versions",
+          "tableTo": "package_versions",
           "columnsFrom": [
-            "service_version_id"
+            "package_version_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "cascade",
           "onUpdate": "no action"
         }
       },
@@ -117,12 +168,21 @@
           ],
           "using": "true"
         },
+        "audits_insert_authenticated": {
+          "name": "audits_insert_authenticated",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"audits\".\"user_id\""
+        },
         "audits_admin_all": {
           "name": "audits_admin_all",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "service_admin"
+            "package_admin"
           ],
           "using": "true",
           "withCheck": "true"
@@ -131,12 +191,12 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.service_owners": {
-      "name": "service_owners",
+    "public.package_owners": {
+      "name": "package_owners",
       "schema": "",
       "columns": {
-        "service_id": {
-          "name": "service_id",
+        "package_id": {
+          "name": "package_id",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
@@ -155,14 +215,45 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "package_owners_user_id_idx": {
+          "name": "package_owners_user_id_idx",
+          "columns": [
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "package_owners_package_id_idx": {
+          "name": "package_owners_package_id_idx",
+          "columns": [
+            {
+              "expression": "package_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "service_owners_service_id_services_id_fk": {
-          "name": "service_owners_service_id_services_id_fk",
-          "tableFrom": "service_owners",
-          "tableTo": "services",
+        "package_owners_package_id_packages_id_fk": {
+          "name": "package_owners_package_id_packages_id_fk",
+          "tableFrom": "package_owners",
+          "tableTo": "packages",
           "columnsFrom": [
-            "service_id"
+            "package_id"
           ],
           "columnsTo": [
             "id"
@@ -170,9 +261,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "service_owners_user_id_users_id_fk": {
-          "name": "service_owners_user_id_users_id_fk",
-          "tableFrom": "service_owners",
+        "package_owners_user_id_users_id_fk": {
+          "name": "package_owners_user_id_users_id_fk",
+          "tableFrom": "package_owners",
           "tableTo": "users",
           "columnsFrom": [
             "user_id"
@@ -185,18 +276,18 @@
         }
       },
       "compositePrimaryKeys": {
-        "service_owners_service_id_user_id_pk": {
-          "name": "service_owners_service_id_user_id_pk",
+        "package_owners_package_id_user_id_pk": {
+          "name": "package_owners_package_id_user_id_pk",
           "columns": [
-            "service_id",
+            "package_id",
             "user_id"
           ]
         }
       },
       "uniqueConstraints": {},
       "policies": {
-        "service_owners_select_public": {
-          "name": "service_owners_select_public",
+        "package_owners_select_public": {
+          "name": "package_owners_select_public",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
@@ -204,30 +295,30 @@
           ],
           "using": "true"
         },
-        "service_owners_insert": {
-          "name": "service_owners_insert",
+        "package_owners_insert": {
+          "name": "package_owners_insert",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "\n        EXISTS (\n          SELECT 1 FROM services s\n          WHERE s.id = \"service_owners\".\"service_id\" AND\n            (s.primary_owner = (select auth.uid())\n              OR EXISTS (\n                SELECT 1 FROM service_owners so\n                WHERE so.service_id = \"service_owners\".\"service_id\" AND so.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
+          "withCheck": "\n        EXISTS (\n          SELECT 1 FROM packages p\n          WHERE p.id = \"package_owners\".\"package_id\" AND\n            (p.primary_owner = (select auth.uid()) OR\n              EXISTS (\n                SELECT 1 FROM package_owners po\n                WHERE po.package_id = \"package_owners\".\"package_id\" AND po.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
         },
-        "service_owners_delete": {
-          "name": "service_owners_delete",
+        "package_owners_delete": {
+          "name": "package_owners_delete",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "\n        EXISTS (\n          SELECT 1 FROM services s\n          WHERE s.id = \"service_owners\".\"service_id\" AND\n            (s.primary_owner = (select auth.uid())\n              OR EXISTS (\n                SELECT 1 FROM service_owners so\n                WHERE so.service_id = \"service_owners\".\"service_id\" AND so.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
+          "using": "\n        EXISTS (\n          SELECT 1 FROM packages p\n          WHERE p.id = \"package_owners\".\"package_id\" AND\n            (p.primary_owner = (select auth.uid()) OR\n              EXISTS (\n                SELECT 1 FROM package_owners po\n                WHERE po.package_id = \"package_owners\".\"package_id\" AND po.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
         },
-        "service_owners_admin_all": {
-          "name": "service_owners_admin_all",
+        "package_owners_admin_all": {
+          "name": "package_owners_admin_all",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "service_admin"
+            "package_admin"
           ],
           "using": "true",
           "withCheck": "true"
@@ -236,110 +327,8 @@
       "checkConstraints": {},
       "isRLSEnabled": false
     },
-    "public.service_version_contributors": {
-      "name": "service_version_contributors",
-      "schema": "",
-      "columns": {
-        "service_id": {
-          "name": "service_id",
-          "type": "varchar(100)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "service_version_id": {
-          "name": "service_version_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "service_version_contributors_service_version_id_service_versions_id_fk": {
-          "name": "service_version_contributors_service_version_id_service_versions_id_fk",
-          "tableFrom": "service_version_contributors",
-          "tableTo": "service_versions",
-          "columnsFrom": [
-            "service_version_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "service_version_contributors_user_id_users_id_fk": {
-          "name": "service_version_contributors_user_id_users_id_fk",
-          "tableFrom": "service_version_contributors",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {
-        "service_version_contributors_service_id_service_version_id_user_id_pk": {
-          "name": "service_version_contributors_service_id_service_version_id_user_id_pk",
-          "columns": [
-            "service_id",
-            "service_version_id",
-            "user_id"
-          ]
-        }
-      },
-      "uniqueConstraints": {},
-      "policies": {
-        "service_version_contributors_select_public": {
-          "name": "service_version_contributors_select_public",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "public"
-          ],
-          "using": "true"
-        },
-        "svc_version_contrib_insert": {
-          "name": "svc_version_contrib_insert",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
-          "withCheck": "\n        EXISTS (\n          SELECT 1 FROM services s\n          WHERE s.id = \"service_version_contributors\".\"service_id\" AND\n            (s.primary_owner = (select auth.uid())\n              OR EXISTS (\n                SELECT 1 FROM service_owners so\n                WHERE so.service_id = \"service_version_contributors\".\"service_id\" AND so.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
-        },
-        "svc_version_contrib_delete": {
-          "name": "svc_version_contrib_delete",
-          "as": "PERMISSIVE",
-          "for": "DELETE",
-          "to": [
-            "authenticated"
-          ],
-          "using": "\n        EXISTS (\n          SELECT 1 FROM services s\n          WHERE s.id = \"service_version_contributors\".\"service_id\" AND\n            (s.primary_owner = (select auth.uid())\n              OR EXISTS (\n                SELECT 1 FROM service_owners so\n                WHERE so.service_id = \"service_version_contributors\".\"service_id\" AND so.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": false
-    },
-    "public.service_versions": {
-      "name": "service_versions",
+    "public.package_versions": {
+      "name": "package_versions",
       "schema": "",
       "columns": {
         "id": {
@@ -349,8 +338,8 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "service_id": {
-          "name": "service_id",
+        "package_id": {
+          "name": "package_id",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
@@ -360,13 +349,6 @@
           "type": "varchar(30)",
           "primaryKey": false,
           "notNull": true
-        },
-        "is_stable": {
-          "name": "is_stable",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
         },
         "size": {
           "name": "size",
@@ -380,9 +362,22 @@
           "primaryKey": false,
           "notNull": true
         },
+        "authors": {
+          "name": "authors",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'[]'::jsonb"
+        },
         "license": {
           "name": "license",
-          "type": "text[]",
+          "type": "varchar(100)",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "license_file": {
+          "name": "license_file",
+          "type": "text",
           "primaryKey": false,
           "notNull": false
         },
@@ -418,14 +413,26 @@
           "notNull": true,
           "default": "0"
         },
-        "readme_url": {
-          "name": "readme_url",
+        "readme": {
+          "name": "readme",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "integrity": {
-          "name": "integrity",
+        "changelog": {
+          "name": "changelog",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "abi_version": {
+          "name": "abi_version",
+          "type": "varchar(50)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "digest": {
+          "name": "digest",
           "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
@@ -452,8 +459,23 @@
         }
       },
       "indexes": {
-        "service_versions_created_at_idx": {
-          "name": "service_versions_created_at_idx",
+        "package_versions_package_id_idx": {
+          "name": "package_versions_package_id_idx",
+          "columns": [
+            {
+              "expression": "package_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "package_versions_created_at_idx": {
+          "name": "package_versions_created_at_idx",
           "columns": [
             {
               "expression": "created_at",
@@ -466,15 +488,60 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
+        },
+        "package_versions_version_idx": {
+          "name": "package_versions_version_idx",
+          "columns": [
+            {
+              "expression": "version",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "package_versions_yanked_idx": {
+          "name": "package_versions_yanked_idx",
+          "columns": [
+            {
+              "expression": "yanked",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "package_versions_publisher_id_idx": {
+          "name": "package_versions_publisher_id_idx",
+          "columns": [
+            {
+              "expression": "publisher_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
         }
       },
       "foreignKeys": {
-        "service_versions_service_id_services_id_fk": {
-          "name": "service_versions_service_id_services_id_fk",
-          "tableFrom": "service_versions",
-          "tableTo": "services",
+        "package_versions_package_id_packages_id_fk": {
+          "name": "package_versions_package_id_packages_id_fk",
+          "tableFrom": "package_versions",
+          "tableTo": "packages",
           "columnsFrom": [
-            "service_id"
+            "package_id"
           ],
           "columnsTo": [
             "id"
@@ -482,9 +549,9 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "service_versions_publisher_id_users_id_fk": {
-          "name": "service_versions_publisher_id_users_id_fk",
-          "tableFrom": "service_versions",
+        "package_versions_publisher_id_users_id_fk": {
+          "name": "package_versions_publisher_id_users_id_fk",
+          "tableFrom": "package_versions",
           "tableTo": "users",
           "columnsFrom": [
             "publisher_id"
@@ -492,12 +559,12 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         },
-        "service_versions_yanked_by_user_id_users_id_fk": {
-          "name": "service_versions_yanked_by_user_id_users_id_fk",
-          "tableFrom": "service_versions",
+        "package_versions_yanked_by_user_id_users_id_fk": {
+          "name": "package_versions_yanked_by_user_id_users_id_fk",
+          "tableFrom": "package_versions",
           "tableTo": "users",
           "columnsFrom": [
             "yanked_by_user_id"
@@ -505,24 +572,24 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "no action",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "service_versions_id_service_id_unique": {
-          "name": "service_versions_id_service_id_unique",
+        "package_versions_package_version_unique": {
+          "name": "package_versions_package_version_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "id",
-            "service_id"
+            "package_id",
+            "version"
           ]
         }
       },
       "policies": {
-        "service_versions_select_public": {
-          "name": "service_versions_select_public",
+        "package_versions_select_public": {
+          "name": "package_versions_select_public",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
@@ -530,41 +597,62 @@
           ],
           "using": "true"
         },
-        "service_versions_insert_owner": {
-          "name": "service_versions_insert_owner",
+        "package_versions_insert_owner": {
+          "name": "package_versions_insert_owner",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "\n        EXISTS (\n          SELECT 1 FROM services s\n          WHERE s.id = \"service_versions\".\"service_id\" AND\n            (s.primary_owner = (select auth.uid())\n              OR EXISTS (\n                SELECT 1 FROM service_owners so\n                WHERE so.service_id = \"service_versions\".\"service_id\" AND so.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
+          "withCheck": "\n        EXISTS (\n          SELECT 1 FROM packages p\n          WHERE p.id = \"package_versions\".\"package_id\" AND\n            (p.primary_owner = (select auth.uid()) OR\n              EXISTS (\n                SELECT 1 FROM package_owners po\n                WHERE po.package_id = \"package_versions\".\"package_id\" AND po.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
         },
-        "service_versions_update_owner": {
-          "name": "service_versions_update_owner",
+        "package_versions_update_owner": {
+          "name": "package_versions_update_owner",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "\n        EXISTS (\n          SELECT 1 FROM services s\n          WHERE s.id = \"service_versions\".\"service_id\" AND\n            (s.primary_owner = (select auth.uid())\n              OR EXISTS (\n                SELECT 1 FROM service_owners so\n                WHERE so.service_id = \"service_versions\".\"service_id\" AND so.user_id = (select auth.uid())\n              )\n            )\n        )\n        AND (\n          \"service_versions\".\"service_id\" IS NOT DISTINCT FROM new.service_id AND\n          \"service_versions\".\"version\" IS NOT DISTINCT FROM new.version AND\n          \"service_versions\".\"size\" IS NOT DISTINCT FROM new.size AND\n          \"service_versions\".\"publisher_id\" IS NOT DISTINCT FROM new.publisher_id AND\n          \"service_versions\".\"license\" IS NOT DISTINCT FROM new.license AND\n          \"service_versions\".\"integrity\" IS NOT DISTINCT FROM new.integrity AND\n          \"service_versions\".\"tarball\" IS NOT DISTINCT FROM new.tarball\n        )\n      ",
-          "withCheck": "\n        EXISTS (\n          SELECT 1 FROM services s\n          WHERE s.id = \"service_versions\".\"service_id\" AND\n            (s.primary_owner = (select auth.uid())\n              OR EXISTS (\n                SELECT 1 FROM service_owners so\n                WHERE so.service_id = \"service_versions\".\"service_id\" AND so.user_id = (select auth.uid())\n              )\n            )\n        )\n      "
+          "using": "\n        EXISTS (\n          SELECT 1 FROM packages p\n          WHERE p.id = \"package_versions\".\"package_id\" AND\n            (p.primary_owner = (select auth.uid()) OR\n              EXISTS (\n                SELECT 1 FROM package_owners po\n                WHERE po.package_id = \"package_versions\".\"package_id\" AND po.user_id = (select auth.uid())\n              )\n            )\n        )\n      ",
+          "withCheck": "\n        EXISTS (\n          SELECT 1 FROM packages p\n          WHERE p.id = \"package_versions\".\"package_id\" AND\n            (p.primary_owner = (select auth.uid()) OR\n              EXISTS (\n                SELECT 1 FROM package_owners po\n                WHERE po.package_id = \"package_versions\".\"package_id\" AND po.user_id = (select auth.uid())\n              )\n            )\n        ) AND\n        \"package_versions\".\"package_id\" = (SELECT package_id FROM package_versions WHERE id = \"package_versions\".\"id\") AND\n        \"package_versions\".\"version\" = (SELECT version FROM package_versions WHERE id = \"package_versions\".\"id\") AND\n        \"package_versions\".\"size\" = (SELECT size FROM package_versions WHERE id = \"package_versions\".\"id\") AND\n        \"package_versions\".\"publisher_id\" = (SELECT publisher_id FROM package_versions WHERE id = \"package_versions\".\"id\") AND\n        \"package_versions\".\"digest\" = (SELECT digest FROM package_versions WHERE id = \"package_versions\".\"id\") AND\n        \"package_versions\".\"tarball\" = (SELECT tarball FROM package_versions WHERE id = \"package_versions\".\"id\")\n      "
         },
-        "service_versions_admin_all": {
-          "name": "service_versions_admin_all",
+        "package_versions_admin_all": {
+          "name": "package_versions_admin_all",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "service_admin"
+            "package_admin"
           ],
           "using": "true",
           "withCheck": "true"
         }
       },
-      "checkConstraints": {},
+      "checkConstraints": {
+        "package_versions_version_format": {
+          "name": "package_versions_version_format",
+          "value": "\"package_versions\".\"version\" ~ '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$'"
+        },
+        "package_versions_yanked_consistency": {
+          "name": "package_versions_yanked_consistency",
+          "value": "(NOT \"package_versions\".\"yanked\") OR (\"package_versions\".\"yanked_at\" IS NOT NULL AND \"package_versions\".\"yanked_by_user_id\" IS NOT NULL)"
+        },
+        "package_versions_license_specified": {
+          "name": "package_versions_license_specified",
+          "value": "\"package_versions\".\"license\" IS NOT NULL OR \"package_versions\".\"license_file\" IS NOT NULL"
+        },
+        "package_versions_size_positive": {
+          "name": "package_versions_size_positive",
+          "value": "\"package_versions\".\"size\" > 0"
+        },
+        "package_versions_downloads_non_negative": {
+          "name": "package_versions_downloads_non_negative",
+          "value": "\"package_versions\".\"downloads\" >= 0"
+        }
+      },
       "isRLSEnabled": false
     },
-    "public.services": {
-      "name": "services",
+    "public.packages": {
+      "name": "packages",
       "schema": "",
       "columns": {
         "id": {
@@ -579,9 +667,9 @@
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "service_type",
+        "categories": {
+          "name": "categories",
+          "type": "package_category[]",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -602,7 +690,7 @@
           "name": "keywords",
           "type": "text[]",
           "primaryKey": false,
-          "notNull": false,
+          "notNull": true,
           "default": "ARRAY[]::text[]"
         },
         "description": {
@@ -659,8 +747,38 @@
         }
       },
       "indexes": {
-        "services_updated_at_idx": {
-          "name": "services_updated_at_idx",
+        "packages_name_idx": {
+          "name": "packages_name_idx",
+          "columns": [
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "packages_primary_owner_idx": {
+          "name": "packages_primary_owner_idx",
+          "columns": [
+            {
+              "expression": "primary_owner",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "packages_updated_at_idx": {
+          "name": "packages_updated_at_idx",
           "columns": [
             {
               "expression": "updated_at",
@@ -674,11 +792,26 @@
           "method": "btree",
           "with": {}
         },
-        "services_type_idx": {
-          "name": "services_type_idx",
+        "packages_categories_idx": {
+          "name": "packages_categories_idx",
           "columns": [
             {
-              "expression": "type",
+              "expression": "categories",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "packages_is_verified_idx": {
+          "name": "packages_is_verified_idx",
+          "columns": [
+            {
+              "expression": "is_verified",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -691,9 +824,9 @@
         }
       },
       "foreignKeys": {
-        "services_primary_owner_users_id_fk": {
-          "name": "services_primary_owner_users_id_fk",
-          "tableFrom": "services",
+        "packages_primary_owner_users_id_fk": {
+          "name": "packages_primary_owner_users_id_fk",
+          "tableFrom": "packages",
           "tableTo": "users",
           "columnsFrom": [
             "primary_owner"
@@ -701,15 +834,23 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "restrict",
           "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "packages_name_unique": {
+          "name": "packages_name_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "name"
+          ]
+        }
+      },
       "policies": {
-        "services_select_public": {
-          "name": "services_select_public",
+        "packages_select_public": {
+          "name": "packages_select_public",
           "as": "PERMISSIVE",
           "for": "SELECT",
           "to": [
@@ -717,49 +858,61 @@
           ],
           "using": "true"
         },
-        "services_insert_authenticated": {
-          "name": "services_insert_authenticated",
+        "packages_insert_authenticated": {
+          "name": "packages_insert_authenticated",
           "as": "PERMISSIVE",
           "for": "INSERT",
           "to": [
             "authenticated"
           ],
-          "withCheck": "(select auth.uid()) IS NOT NULL AND (select auth.uid()) = \"services\".\"primary_owner\""
+          "withCheck": "(select auth.uid()) IS NOT NULL AND (select auth.uid()) = \"packages\".\"primary_owner\""
         },
-        "services_update_owners": {
-          "name": "services_update_owners",
+        "packages_update_owners": {
+          "name": "packages_update_owners",
           "as": "PERMISSIVE",
           "for": "UPDATE",
           "to": [
             "authenticated"
           ],
-          "using": "\n        (\n          (select auth.uid()) = \"services\".\"primary_owner\" OR\n          EXISTS (\n            SELECT 1 FROM service_owners so\n            WHERE so.service_id = \"services\".\"id\" AND so.user_id = (select auth.uid())\n          )\n        ) AND (\n          current_setting('role') = 'service_admin' OR\n          (\"services\".\"is_verified\" IS NOT DISTINCT FROM new.is_verified)\n        )\n      ",
-          "withCheck": "\n        (\n          (select auth.uid()) = \"services\".\"primary_owner\" OR\n          EXISTS (\n            SELECT 1 FROM service_owners so\n            WHERE so.service_id = \"services\".\"id\" AND so.user_id = (select auth.uid())\n          )\n        ) AND (\n          current_setting('role') = 'service_admin' OR\n          (\"services\".\"is_verified\" IS NOT DISTINCT FROM new.is_verified)\n        )\n      "
+          "using": "\n        (select auth.uid()) = \"packages\".\"primary_owner\" OR\n        EXISTS (\n          SELECT 1 FROM package_owners po\n          WHERE po.package_id = \"packages\".\"id\" AND po.user_id = (select auth.uid())\n        )\n      ",
+          "withCheck": "\n        ((select auth.uid()) = \"packages\".\"primary_owner\" OR\n        EXISTS (\n          SELECT 1 FROM package_owners po\n          WHERE po.package_id = \"packages\".\"id\" AND po.user_id = (select auth.uid())\n        )) AND\n        (\"packages\".\"is_verified\" = (SELECT is_verified FROM packages WHERE id = \"packages\".\"id\"))\n      "
         },
-        "services_delete_primary_owner": {
-          "name": "services_delete_primary_owner",
+        "packages_delete_primary_owner": {
+          "name": "packages_delete_primary_owner",
           "as": "PERMISSIVE",
           "for": "DELETE",
           "to": [
             "authenticated"
           ],
-          "using": "(select auth.uid()) = \"services\".\"primary_owner\""
+          "using": "(select auth.uid()) = \"packages\".\"primary_owner\""
         },
-        "services_admin_all": {
-          "name": "services_admin_all",
+        "packages_admin_all": {
+          "name": "packages_admin_all",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
-            "service_admin"
+            "package_admin"
           ],
           "using": "true",
           "withCheck": "true"
         }
       },
       "checkConstraints": {
-        "services_id_format": {
-          "name": "services_id_format",
-          "value": "\"services\".\"id\" ~ '^[a-z0-9-]+$'"
+        "packages_id_format": {
+          "name": "packages_id_format",
+          "value": "\"packages\".\"id\" ~ '^[a-z0-9-]+$'"
+        },
+        "packages_name_format": {
+          "name": "packages_name_format",
+          "value": "\"packages\".\"name\" ~ '^[a-z](?:[a-z0-9_-]{0,62}[a-z0-9])?$'"
+        },
+        "packages_keywords_max_length": {
+          "name": "packages_keywords_max_length",
+          "value": "array_length(\"packages\".\"keywords\", 1) <= 5"
+        },
+        "packages_deprecation_consistency": {
+          "name": "packages_deprecation_consistency",
+          "value": "(NOT \"packages\".\"is_deprecated\") OR (\"packages\".\"deprecation_message\" IS NOT NULL)"
         }
       },
       "isRLSEnabled": false
@@ -772,17 +925,12 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "email": {
           "name": "email",
           "type": "varchar(150)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "username": {
-          "name": "username",
-          "type": "varchar(50)",
           "primaryKey": false,
           "notNull": true
         },
@@ -813,15 +961,31 @@
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "users_email_idx": {
+          "name": "users_email_idx",
+          "columns": [
+            {
+              "expression": "email",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "users_username_unique": {
-          "name": "users_username_unique",
+        "users_email_unique": {
+          "name": "users_email_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "username"
+            "email"
           ]
         }
       },
@@ -835,6 +999,15 @@
           ],
           "using": "true"
         },
+        "users_insert_own": {
+          "name": "users_insert_own",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "authenticated"
+          ],
+          "withCheck": "(select auth.uid()) = \"users\".\"id\""
+        },
         "users_update_own": {
           "name": "users_update_own",
           "as": "PERMISSIVE",
@@ -842,8 +1015,8 @@
           "to": [
             "authenticated"
           ],
-          "using": "(select auth.uid()) = id",
-          "withCheck": "(select auth.uid()) = id"
+          "using": "(select auth.uid()) = \"users\".\"id\"",
+          "withCheck": "(select auth.uid()) = \"users\".\"id\""
         }
       },
       "checkConstraints": {},
@@ -855,19 +1028,19 @@
       "name": "audit_action",
       "schema": "public",
       "values": [
-        "service_verify",
-        "service_unverify",
-        "service_deprecate",
-        "service_undeprecate",
-        "service_transfer_ownership",
+        "package_verify",
+        "package_unverify",
+        "package_deprecate",
+        "package_undeprecate",
+        "package_transfer_ownership",
         "version_yank",
         "version_unyank",
         "version_update",
         "version_publish"
       ]
     },
-    "public.service_type": {
-      "name": "service_type",
+    "public.package_category": {
+      "name": "package_category",
       "schema": "public",
       "values": [
         "server",
@@ -879,8 +1052,8 @@
   "schemas": {},
   "sequences": {},
   "roles": {
-    "service_admin": {
-      "name": "service_admin",
+    "package_admin": {
+      "name": "package_admin",
       "createDb": false,
       "createRole": false,
       "inherit": true

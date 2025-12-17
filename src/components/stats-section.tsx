@@ -46,21 +46,21 @@ const StatsSection = () => {
     <div className="z-10 w-full flex items-center justify-center sm:justify-between gap-8 mt-8 px-4">
       <div className="flex flex-col items-center text-center">
         <span className="text-2xl sm:text-3xl font-bold text-foreground">
-          {stats.services.toLocaleString()}
+          {stats.packages.toLocaleString()}
         </span>
         <span className="text-muted-foreground">Services</span>
       </div>
 
       <div className="flex flex-col items-center text-center">
         <span className="text-2xl sm:text-3xl font-bold text-foreground">
-          {stats.downloads.toLocaleString()}
+          {stats?.downloads.toLocaleString()}
         </span>
         <span className="text-muted-foreground">Downloads</span>
       </div>
 
       <div className="flex flex-col items-center text-center">
         <span className="text-2xl sm:text-3xl font-bold text-foreground">
-          {stats.releases.toLocaleString()}
+          {stats?.releases.toLocaleString()}
         </span>
         <span className="text-muted-foreground">Releases</span>
       </div>

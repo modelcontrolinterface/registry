@@ -10,22 +10,22 @@ import {
 } from "@/components/ui/select";
 import { useSearch } from "@/hooks/use-search";
 import Pagination from "@/components/pagination";
-import ServiceCard from "@/components/service-card";
+import PackageCard from "@/components/package-card";
 import { Separator } from "@/components/ui/separator";
-import ServiceCardSkeleton from "@/components/service-card-skeleton";
+import PackageCardSkeleton from "@/components/package-card-skeleton";
 
 const SearchPageContent = () => {
   const {
-    type,
+    categories,
     page,
     sort,
     error,
     loading,
     verified,
-    services,
+    packages,
     pagination,
     initialLoad,
-    handleTypeChange,
+    handleCategoriesChange,
     handlePageChange,
     handleSortChange,
     handleVerifiedChange,
@@ -38,8 +38,8 @@ const SearchPageContent = () => {
           {initialLoad || loading
             ? "Searching..."
             : pagination
-              ? `${pagination.total.toLocaleString()} services found`
-              : "— services"}
+              ? `${pagination.total.toLocaleString()} packages found`
+              : "— packages"}
         </span>
 
         <div className="flex gap-2 flex-wrap">
@@ -68,13 +68,13 @@ const SearchPageContent = () => {
             </SelectContent>
           </Select>
 
-          <Select value={type} onValueChange={handleTypeChange}>
+          <Select value={categories} onValueChange={handleCategoriesChange}>
             <SelectTrigger className="w-[150px]">
               <SelectValue placeholder="Type" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All</SelectItem>
-              <SelectItem value="service">Service</SelectItem>
+              <SelectItem value="package">Package</SelectItem>
               <SelectItem value="interceptor">Interceptor</SelectItem>
               <SelectItem value="sandbox">Sandbox</SelectItem>
             </SelectContent>
@@ -89,11 +89,11 @@ const SearchPageContent = () => {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
         {initialLoad || loading ? (
           Array.from({ length: pagination?.limit ?? 12 }).map((_, i) => (
-            <ServiceCardSkeleton key={i} />
+            <PackageCardSkeleton key={i} />
           ))
-        ) : services.length ? (
-          services.map((service) => (
-            <ServiceCard key={service.id} {...service} />
+        ) : packages.length ? (
+          packages.map((pkg) => (
+            <PackageCard key={pkg.id} {...pkg} />
           ))
         ) : (
           <div className="col-span-full text-center text-muted-foreground">

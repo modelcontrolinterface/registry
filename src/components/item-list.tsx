@@ -1,7 +1,5 @@
 "use client";
 
-import { GetUserResult } from "@/app/api/v1/user-by-username/[username]/route";
-
 import {
   Select,
   SelectContent,
@@ -10,17 +8,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import Pagination from "@/components/pagination";
-import ServiceCard from "@/components/service-card";
+import PackageCard from "@/components/package-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
+import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 
-type Service = GetUserResult["owned"]["services"][number];
+type Package = GetUserResult["owned"]["package"][number];
 
 interface ItemListProps {
   sort: string;
   page: number;
   total: number;
-  items: Service[];
+  items: Package[];
   loading: boolean;
   totalPages: number;
   onSortChange: (newSort: string) => void;
@@ -95,7 +94,7 @@ const ItemList = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
         {items.map((item) => (
-          <ServiceCard key={item.id} {...item} />
+          <PackageCard key={item.id} {...item} />
         ))}
       </div>
 

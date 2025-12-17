@@ -13,11 +13,13 @@ const space = Space_Mono({
 });
 
 export const metadata: Metadata = {
+  icons: ["/logo.svg"],
   title: "MCIR: The MCI service registry",
   description: `
   MCIR is a registry of services that extend the functionality of the model
   control interface (MCI)
   `,
+
 };
 
 const RootLayout = async ({ children }: { children: React.ReactNode; }) => {

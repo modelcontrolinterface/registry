@@ -17,7 +17,7 @@ const Home = () => {
           "[background-image:linear-gradient(to_right,var(--color-foreground)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-foreground)_1px,transparent_1px)]"
         )}
       />
-      <div className="pointer-events-none absolute inset-0 bg-background [mask-image:radial-gradient(ellipse_at_center,transparent_0%,var(--color-background))]" />
+      <div className="pointer-events-none absolute inset-0 bg-background [mask-image:radial-gradient(ellipse_at_center,transparent_0%,var(--color-background))]"/>
 
       <div className="z-10 w-full max-w-2xl flex flex-col items-center gap-4 px-8">
         <div className="text-center space-y-4">
