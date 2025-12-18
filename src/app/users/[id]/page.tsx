@@ -45,8 +45,8 @@ const ProfilePage = () => {
         }
 
         const data: UserApiResponse = await res.json();
-        setOwnedData(data?.owned);
-        setUserProfile(data?.user);
+        setOwnedData(data?.owned || null);
+        setUserProfile(data?.user || null);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setUserProfile(null);
