@@ -3,9 +3,22 @@ import { users, packages } from "@/db/schema";
 import { NextRequest, NextResponse } from "next/server";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
-export type GetUserResult = Awaited<ReturnType<typeof getUser>>;
+interface OwnedPackagesData {
+  packages: typeof packages.$inferSelect[];
+  pagination: {
+    total: number;
+    totalPages: number;
+  };
+}
 
-const getUser = async (db: any, id: string) => {
+interface GetUserReturn {
+  user: typeof users.$inferSelect;
+  owned: OwnedPackagesData;
+}
+
+export type GetUserResult = GetUserReturn | null;
+
+const getUser = async (db: any, id: string): Promise<GetUserReturn | null> => {
   const user = await db.query.users.findFirst({
     where: eq(users.id, id),
   });
