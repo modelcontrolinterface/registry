@@ -110,7 +110,11 @@ const getPackages = async (
         break;
       case "relevance":
       default:
-        return baseQuery.orderBy(desc(packages.is_verified), desc(packages.updated_at));
+        orderByClause = [desc(packages.is_verified), desc(packages.updated_at)];
+        break;
+    }
+
+    return baseQuery.orderBy(orderByClause);
   });
 
   const [total, results] = await Promise.all([
