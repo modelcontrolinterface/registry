@@ -1,10 +1,10 @@
-import { eq, desc } from "drizzle-orm";
-import { users, packages } from "@/db/schema";
+import { eq, desc, sql } from "drizzle-orm";
+import { users, packages, package_versions } from "@/db/schema";
 import { NextRequest, NextResponse } from "next/server";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
 interface OwnedPackagesData {
-  packages: typeof packages.$inferSelect[];
+  packages: (typeof packages.$inferSelect & { downloads: number })[];
   pagination: {
     total: number;
     totalPages: number;
@@ -27,10 +27,16 @@ const getUser = async (db: any, id: string): Promise<GetUserReturn | null> => {
     return null;
   }
 
-  const ownedPackages = await db.query.packages.findMany({
-    where: eq(packages.primary_owner, user.id),
-    orderBy: desc(packages.created_at),
-  });
+  const ownedPackages = await db
+    .select({
+      ...packages,
+      downloads: sql<number>`sum(${package_versions.downloads})`.as("downloads"),
+    })
+    .from(packages)
+    .leftJoin(package_versions, eq(packages.id, package_versions.package_id))
+    .where(eq(packages.primary_owner, user.id))
+    .groupBy(packages.id)
+    .orderBy(desc(packages.created_at));
 
   return {
     user,
