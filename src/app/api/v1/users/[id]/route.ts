@@ -30,7 +30,7 @@ const getUser = async (db: any, id: string): Promise<GetUserReturn | null> => {
   const ownedPackages = await db
     .select({
       ...packages,
-      downloads: sql<number>`sum(${package_versions.downloads})`.as("downloads"),
+      downloads: sql<number>`coalesce(sum(${package_versions.downloads}), 0)`.as("downloads"),
     })
     .from(packages)
     .leftJoin(package_versions, eq(packages.id, package_versions.package_id))
