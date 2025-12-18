@@ -232,21 +232,20 @@ const PackagePage = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-4">
           <div className="flex-1 space-y-4">
-            <Card>
-              <CardContent className="flex gap-4">
-                <Skeleton className="h-24 w-24 rounded-3xl" />
-                <div className="flex-1 space-y-2">
-                  <Skeleton className="h-8 w-64" />
-                  <Skeleton className="h-4 w-full max-w-md" />
-                  <div className="flex gap-2">
-                    <Skeleton className="h-6 w-16" />
-                    <Skeleton className="h-6 w-16" />
-                    <Skeleton className="h-6 w-16" />
-                  </div>
+            <div className="flex gap-6">
+              <Skeleton className="h-24 w-24 rounded-3xl" />
+              <div className="flex-1 space-y-2">
+                <Skeleton className="h-8 w-64" />
+                <Skeleton className="h-4 w-full max-w-md" />
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-16" />
+                  <Skeleton className="h-6 w-16" />
+                  <Skeleton className="h-6 w-16" />
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
             <div className="flex gap-2">
+              <Skeleton className="h-10 w-24" />
               <Skeleton className="h-10 w-24" />
               <Skeleton className="h-10 w-24" />
               <Skeleton className="h-10 w-24" />
@@ -318,6 +317,7 @@ const PackagePage = () => {
           <Tabs defaultValue="readme" className="flex-1">
             <TabsList>
               <TabsTrigger value="readme">Readme</TabsTrigger>
+              <TabsTrigger value="changelog">Changelog</TabsTrigger>
               <TabsTrigger value="versions">
                 Versions ({stats.total_versions})
               </TabsTrigger>
@@ -342,6 +342,20 @@ const PackagePage = () => {
                     <pre className="font-sans whitespace-pre-wrap">
                       {readmeContent}
                     </pre>
+                  )}
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="changelog">
+              <Card>
+                <CardContent className="prose prose-sm max-w-none p-6 dark:prose-invert">
+                  {defaultVersion?.changelog ? (
+                    <pre className="font-sans whitespace-pre-wrap">
+                      {defaultVersion.changelog}
+                    </pre>
+                  ) : (
+                    <p className="text-muted-foreground">No changelog available.</p>
                   )}
                 </CardContent>
               </Card>
