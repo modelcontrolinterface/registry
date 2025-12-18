@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 
+import { format } from "date-fns";
 import Link from "next/link";
 import {
   Copy,
@@ -184,11 +185,7 @@ const PackagePage = () => {
 
   const formatDate = (s: string | Date) => {
     const date = typeof s === "string" ? new Date(s) : s;
-    return date.toLocaleDateString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-    });
+    return format(date, "MMM d, yyyy");
   };
 
   const formatBytes = (bytes: number) => {

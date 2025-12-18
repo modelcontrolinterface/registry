@@ -1,29 +1,31 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { GetServicesApiResponse } from "@/app/api/v1/services/route";
+import { GetPackagesApiResponse } from "@/app/api/v1/packages/route";
 
 export const useSearch = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
   const initialQuery = searchParams.get("q") || "";
-  const initialCategories = searchParams.get("categories") || "all";
   const initialPage = Number(searchParams.get("page")) || 1;
   const initialSort = searchParams.get("sort") || "relevance";
   const initialVerified = searchParams.get("verified") || "all";
+  const initialCategories = searchParams.get("categories") || "all";
 
   const [query] = useState(initialQuery);
-  const [categories, setCategories] = useState<string>(initialCategories);
   const [page, setPage] = useState<number>(initialPage);
   const [sort, setSort] = useState<string>(initialSort);
   const [verified, setVerified] = useState<string>(initialVerified);
+  const [categories, setCategories] = useState<string>(initialCategories);
 
   const [loading, setLoading] = useState<boolean>(false);
-  const [services, setServices] = useState<GetServicesApiResponse["services"]>([]);
+  const [packages, setPackages] = useState<GetPackagesApiResponse["packages"]>(
+    [],
+  );
   const [error, setError] = useState<string | null>(null);
   const [initialLoad, setInitialLoad] = useState<boolean>(true);
   const [pagination, setPagination] = useState<
-    GetServicesApiResponse["pagination"] | null
+    GetPackagesApiResponse["pagination"] | null
   >(null);
 
   useEffect(() => {
@@ -58,27 +60,25 @@ export const useSearch = () => {
 
         if (verified !== "all") params.set("verified", verified);
 
-        const url = `/api/v1/services?${params.toString()}`;
+        const url = `/api/v1/packages?${params.toString()}`;
         const res = await fetch(url, { signal });
 
         if (!res.ok) {
           throw new Error(`HTTP ${res.status}`);
         }
 
-        const json: GetServicesApiResponse = await res.json();
+        const json: GetPackagesApiResponse = await res.json();
 
-        const processedServices = json.services.map(service => ({
-          ...service,
-          updated_at: new Date(service.updated_at),
-          createdAt: new Date(service.createdAt),
+        const processedPackages = json.packages.map((pkg) => ({
+          ...pkg,
         }));
 
-        setServices(processedServices || []);
+        setPackages(processedPackages || []);
         setPagination(json.pagination || null);
       } catch (err: any) {
         if (err.name === "AbortError") return;
         setError(err.message || "Failed to fetch");
-        setServices([]);
+        setPackages([]);
         setPagination(null);
       } finally {
         setLoading(false);
@@ -116,7 +116,7 @@ export const useSearch = () => {
     sort,
     verified,
     loading,
-    services,
+    packages,
     error,
     initialLoad,
     pagination,

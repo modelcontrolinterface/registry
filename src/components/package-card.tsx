@@ -1,8 +1,10 @@
+import { formatDistanceToNowStrict } from "date-fns"
+
 import Link from "next/link"
+import { Badge } from "@/components/ui/badge"
 import PackageBadge from "@/components/package-badge"
 import { Download, Calendar, Server, BadgeCheck } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
 
 interface PackageCardProps {
   id: string
@@ -19,29 +21,19 @@ interface PackageCardProps {
 const PackageCard = ({
   id,
   name,
-  categories,
   downloads,
+  categories,
   updated_at,
   is_verified,
   description,
+  is_deprecated,
   default_version,
 }: PackageCardProps) => {
   const formatDownloads = (count: number) => {
     if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
+
     return count.toString()
-  }
-
-  const formatDate = (d: Date) => {
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - d.getTime())
-    const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 0) return "today"
-    if (diffDays === 1) return "yesterday"
-    if (diffDays < 30) return `${diffDays}d ago`
-    if (diffDays < 365) return `${Math.floor(diffDays / 30)}mo ago`
-    return `${Math.floor(diffDays / 365)}y ago`
   }
 
   return (
@@ -60,9 +52,11 @@ const PackageCard = ({
                   {name}
                 </CardTitle>
                 {is_verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
-                {is_deprecated && <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-500">Deprecated</Badge>}
               </div>
-              <PackageBadge type={categories[0]}/>
+              <div className="flex gap-2">
+                <PackageBadge type={categories[0]}/>
+                {is_deprecated && <Badge variant="destructive">Deprecated</Badge>}
+              </div>
             </div>
           </div>
           <CardDescription className="line-clamp-2">{description? description : "No description yet :("}</CardDescription>
@@ -79,7 +73,7 @@ const PackageCard = ({
 
           <div className="flex items-center gap-1">
             <Calendar className="w-3.5 h-3.5" />
-            <span>{formatDate(updated_at)}</span>
+            <span>{formatDistanceToNowStrict(updated_at)}</span>
           </div>
         </CardContent>
       </Card>
