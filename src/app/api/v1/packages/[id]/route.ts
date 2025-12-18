@@ -19,6 +19,7 @@ const getPackage = async (id: string) => {
             version: true,
             size: true,
             publisher_id: true,
+            authors: true,
             license: true,
             yanked: true,
             yanked_message: true,
