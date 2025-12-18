@@ -183,11 +183,6 @@ const PackagePage = () => {
         ? `${(n / 1_000).toFixed(1)}K`
         : String(n);
 
-  const formatDate = (s: string | Date) => {
-    const date = typeof s === "string" ? new Date(s) : s;
-    return format(date, "MMM d, yyyy");
-  };
-
   const formatBytes = (bytes: number) => {
     if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
     if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`;
@@ -380,7 +375,7 @@ const PackagePage = () => {
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {formatDate(v.created_at.toString())}
+                            {format(v.created_at, "MMM d, yyyy")}
                           </div>
                         </div>
 
@@ -501,7 +496,7 @@ const PackagePage = () => {
                                 </Link>
                               </span>
                             )}
-                            <span>{formatDate(audit.timestamp.toString())}</span>
+                            <span>{format(audit.timestamp, "MMM d, yyyy")}</span>
                           </div>
                         </div>
                       </div>
@@ -554,7 +549,7 @@ const PackagePage = () => {
                     <Calendar className="h-4 w-4" />
                     <span>Updated</span>
                   </span>
-                  <span>{formatDate(pkg.updated_at.toString())}</span>
+                  <span>{format(pkg.updated_at, "MMM d, yyyy")}</span>
                 </div>
 
                 <div className="flex justify-between">
