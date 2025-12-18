@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 
-type Package = GetUserResult["owned"]["package"][number];
+type Package = NonNullable<GetUserResult>["owned"]["packages"][number];
 
 interface ItemListProps {
   sort: string;
@@ -64,7 +64,7 @@ const ItemList = ({
         </div>
         <Separator className="my-4" />
         <div className="col-span-full text-center text-muted-foreground py-12">
-          No services found.
+          No packages found.
         </div>
       </>
     );
@@ -73,8 +73,8 @@ const ItemList = ({
   return (
     <>
       <div className="flex justify-between items-center gap-2 mb-4">
-        <span className="text-lg">
-          {total} {total === 1 ? "service" : "services"} (Page {page} of{" "}
+        <span>
+          {total} {total === 1 ? "package" : "packages"} (Page {page} of{" "}
           {totalPages})
         </span>
 
