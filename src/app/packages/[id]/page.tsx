@@ -123,6 +123,8 @@ const PackagePage = () => {
   const [loading, setLoading] = useState(true);
   const [readmeLoading, setReadmeLoading] = useState(false);
   const [readmeContent, setReadmeContent] = useState<string>("");
+  const [changelogLoading, setChangelogLoading] = useState(false);
+  const [changelogContent, setChangelogContent] = useState<string>("");
   const [data, setData] = useState<GetPackageResultExplicit | null>(null);
 
   useEffect(() => {
@@ -140,6 +142,7 @@ const PackagePage = () => {
         const packageData: GetPackageResultExplicit = await res.json();
         setData(packageData);
 
+        // Fetch README content
         if (packageData.package.default_version_data?.readme) {
           setReadmeLoading(true);
           try {
@@ -151,20 +154,50 @@ const PackagePage = () => {
               setReadmeContent(text);
             } else {
               setReadmeContent(
-                "# README not available\\n\\nNo README found for this version.",
+                "# README not available\n\nNo README found for this version.",
               );
             }
-          } catch (err) {
+          }
+          catch (err) {
             console.error("Error fetching README:", err);
             setReadmeContent(
-              "# Error loading README\\n\\nCould not load README content.",
+              "# Error loading README\n\nCould not load README content.",
             );
           } finally {
             setReadmeLoading(false);
           }
         } else {
           setReadmeContent(
-            "# No README available\\n\\nThis package does not have a default version set yet.",
+            "# No README available\n\nThis package does not have a default version set yet.",
+          );
+        }
+
+        // Fetch Changelog content
+        if (packageData.package.default_version_data?.changelog) {
+          setChangelogLoading(true);
+          try {
+            const changelogRes = await fetch(
+              packageData.package.default_version_data.changelog,
+            );
+            if (changelogRes.ok) {
+              const text = await changelogRes.text();
+              setChangelogContent(text);
+            } else {
+              setChangelogContent(
+                "# Changelog not available\n\nNo changelog found for this version.",
+              );
+            }
+          } catch (err) {
+            console.error("Error fetching Changelog:", err);
+            setChangelogContent(
+              "# Error loading Changelog\n\nCould not load changelog content.",
+            );
+          } finally {
+            setChangelogLoading(false);
+          }
+        } else {
+          setChangelogContent(
+            "# No Changelog available\n\nThis package does not have a default version set yet.",
           );
         }
       } catch (error) {
@@ -344,12 +377,16 @@ const PackagePage = () => {
             <TabsContent value="changelog">
               <Card>
                 <CardContent className="prose prose-sm max-w-none p-6 dark:prose-invert">
-                  {defaultVersion?.changelog ? (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {defaultVersion.changelog}
-                    </ReactMarkdown>
+                  {changelogLoading ? (
+                    <div className="space-y-2">
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-full" />
+                      <Skeleton className="h-4 w-3/4" />
+                    </div>
                   ) : (
-                    <p className="text-muted-foreground">No changelog available.</p>
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                      {changelogContent}
+                    </ReactMarkdown>
                   )}
                 </CardContent>
               </Card>
@@ -430,6 +467,11 @@ const PackagePage = () => {
                       </div>
                     </div>
                   ))}
+                  {(versions?.length === 0) && (
+                    <div className="text-center text-muted-foreground py-12">
+                      No versions found.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
@@ -504,6 +546,11 @@ const PackagePage = () => {
                       </div>
                     </div>
                   ))}
+                  {(audits?.length === 0) && (
+                    <div className="text-center text-muted-foreground py-12">
+                      No audits found.
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             </TabsContent>
