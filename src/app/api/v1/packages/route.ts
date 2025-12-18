@@ -87,34 +87,34 @@ const getPackages = async (
       .leftJoin(users, eq(packages.primary_owner, users.id))
       .where(where);
 
+    let orderByClause: any;
+
     switch (sort) {
       case "downloads":
-        baseQuery = baseQuery.orderBy(desc(packages.downloads));
+        orderByClause = desc(packages.downloads);
         break;
       case "newest":
-        baseQuery = baseQuery.orderBy(desc(packages.created_at));
+        orderByClause = desc(packages.created_at);
         break;
       case "oldest":
-        baseQuery = baseQuery.orderBy(asc(packages.created_at));
+        orderByClause = asc(packages.created_at);
         break;
       case "name-asc":
-        baseQuery = baseQuery.orderBy(asc(packages.name));
+        orderByClause = asc(packages.name);
         break;
       case "name-desc":
-        baseQuery = baseQuery.orderBy(desc(packages.name));
+        orderByClause = desc(packages.name);
         break;
       case "updated":
-        baseQuery = baseQuery.orderBy(desc(packages.updated_at));
+        orderByClause = desc(packages.updated_at);
         break;
       case "relevance":
       default:
-        baseQuery = baseQuery.orderBy(
-          desc(packages.is_verified),
-          desc(packages.updated_at),
-        );
+        orderByClause = [desc(packages.is_verified), desc(packages.updated_at)];
         break;
     }
-    return baseQuery;
+
+    return baseQuery.orderBy(orderByClause);
   });
 
   const [total, results] = await Promise.all([
