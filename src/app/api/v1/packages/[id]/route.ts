@@ -17,7 +17,6 @@ const getPackage = async (id: string) => {
             id: true,
             package_id: true,
             version: true,
-            is_stable: true,
             size: true,
             publisher_id: true,
             license: true,
