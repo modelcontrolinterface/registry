@@ -8,8 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 
 type UserApiResponse = GetUserResult;
-type UserProfile = GetUserResult["user"];
-type ServicesData = GetUserResult["owned"];
+type UserProfile = UserApiResponse extends { user: infer U } ? U : never;
+type PackagesData = UserApiResponse extends { owned: infer O } ? O : never;
 
 const ProfilePage = () => {
   const router = useRouter();
@@ -21,7 +21,7 @@ const ProfilePage = () => {
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
 
-  const [ownedData, setOwnedData] = useState<ServicesData | null>(null);
+  const [ownedData, setOwnedData] = useState<PackagesData | null>(null);
   const [ownedSort, setOwnedSort] = useState(searchParams.get("ownedSort") || "recent");
   const [ownedPage, setOwnedPage] = useState(Number(searchParams.get("ownedPage")) || 1);
 
@@ -45,8 +45,8 @@ const ProfilePage = () => {
         }
 
         const data: UserApiResponse = await res.json();
-        setOwnedData(data.owned);
-        setUserProfile(data.user);
+        setOwnedData(data?.owned);
+        setUserProfile(data?.user);
       } catch (error) {
         console.error("Error fetching user data:", error);
         setUserProfile(null);
@@ -68,8 +68,6 @@ const ProfilePage = () => {
             <Skeleton className="w-32 h-4" />
           </div>
         </div>
-
-
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           {[...Array(6)].map((_, i) => (
@@ -101,12 +99,11 @@ const ProfilePage = () => {
         />
         <div>
           <h1 className="text-2xl font-bold">{userProfile.display_name}</h1>
-
         </div>
       </div>
 
       <ItemList
-        items={ownedData?.services || []}
+        items={ownedData?.packages || []}
         sort={ownedSort}
         loading={loading}
         onSortChange={(v) => {
