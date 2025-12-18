@@ -91,7 +91,7 @@ const getPackages = async (
 
     switch (sort) {
       case "downloads":
-        orderByClause = desc(packages.downloads);
+        orderByClause = desc(sql`downloads`);
         break;
       case "newest":
         orderByClause = desc(packages.created_at);
