@@ -15,7 +15,6 @@ import {
   Package,
   Download,
   Calendar,
-  GitBranch,
   BadgeCheck,
   ShieldCheck,
   AlertTriangle,
@@ -105,8 +104,6 @@ interface Stats {
   total_audits: number;
 }
 
-
-
 interface GetPackageResultExplicit {
   package: Package;
   owners: PackageOwner[];
@@ -119,13 +116,11 @@ const PackagePage = () => {
   const params = useParams();
   const { id } = params;
 
-  const [loading, setLoading] = useState(true);
-  const [data, setData] = useState<GetPackageResultExplicit | null>(null);
-  const [readmeContent, setReadmeContent] = useState<string>("");
-  const [readmeLoading, setReadmeLoading] = useState(false);
   const [copied, setCopied] = useState(false);
-
-
+  const [loading, setLoading] = useState(true);
+  const [readmeLoading, setReadmeLoading] = useState(false);
+  const [readmeContent, setReadmeContent] = useState<string>("");
+  const [data, setData] = useState<GetPackageResultExplicit | null>(null);
 
   useEffect(() => {
     const loadPackageData = async () => {
@@ -187,12 +182,14 @@ const PackagePage = () => {
         ? `${(n / 1_000).toFixed(1)}K`
         : String(n);
 
-  const formatDate = (s: string | Date) =>
-    new Date(s).toLocaleDateString("en-US", {
+  const formatDate = (s: string | Date) => {
+    const date = typeof s === "string" ? new Date(s) : s;
+    return date.toLocaleDateString("en-US", {
       month: "short",
       day: "numeric",
       year: "numeric",
     });
+  };
 
   const formatBytes = (bytes: number) => {
     if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
@@ -249,7 +246,19 @@ const PackagePage = () => {
                 </div>
               </CardContent>
             </Card>
-            <Skeleton className="h-96 w-full" />
+            <div className="flex gap-2">
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+              <Skeleton className="h-10 w-24" />
+            </div>
+            <Card>
+              <CardContent className="space-y-2 p-6">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-3/4" />
+              </CardContent>
+            </Card>
           </div>
           <Skeleton className="h-96 lg:w-96" />
         </div>
@@ -273,52 +282,38 @@ const PackagePage = () => {
 
   return (
     <div className="container mx-auto flex flex-col gap-8 px-4 py-8">
-      {pkg.is_deprecated && (
-        <Alert variant="destructive">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertDescription>
-            <strong>This package is deprecated.</strong>{" "}
-            {pkg.deprecation_message ||
-              "Please consider using an alternative."}
-          </AlertDescription>
-        </Alert>
-      )}
-
       <div className="flex flex-col gap-4 lg:flex-row">
         <div className="flex flex-1 flex-col gap-4">
-          <Card>
-            <CardContent className="flex gap-4">
-              <div className="h-24 w-24 overflow-hidden rounded-3xl bg-muted flex items-center justify-center">
-                <Package className="h-12 w-12 text-muted-foreground" />
-              </div>
+          <div className="flex gap-6">
+            <div className="h-24 w-24 overflow-hidden rounded-3xl bg-muted flex items-center justify-center">
+              <Package className="h-12 w-12 text-muted-foreground" />
+            </div>
 
-              <div className="flex-1">
-                <div className="flex flex-wrap items-center gap-3">
-                  <h1 className="text-3xl font-bold">{pkg.name}</h1>
-                  {pkg.is_verified && (
-                    <BadgeCheck className="text-blue-500" />
-                  )}
-                  {pkg.is_deprecated && <Badge variant="destructive" className="bg-orange-500 hover:bg-orange-500">Deprecated</Badge>}
-                  <PackageBadge type={pkg.categories[0]} />
-                </div>
-                <p className="mt-1 text-muted-foreground">
-                  {pkg.description || "No description available"}
-                </p>
-
-                <div className="mt-3 flex flex-wrap gap-2">
-                  {pkg.keywords && pkg.keywords.map((k) => (
-                    <Badge
-                      variant="secondary"
-                      key={k}
-                      className="uppercase tracking-wide"
-                    >
-                      {k}
-                    </Badge>
-                  ))}
-                </div>
+            <div className="flex-1 space-y-2">
+              <div className="flex flex-wrap items-center gap-3">
+                <h1 className="text-3xl font-bold">{pkg.name}</h1>
+                {pkg.is_verified && (
+                  <BadgeCheck className="text-blue-500" />
+                )}
               </div>
-            </CardContent>
-          </Card>
+              <PackageBadge type={pkg.categories[0]} />
+              <p className="mt-1 text-muted-foreground">
+                {pkg.description || "No description available"}
+              </p>
+
+              <div className="mt-3 flex flex-wrap gap-2">
+                {pkg.keywords && pkg.keywords.map((k) => (
+                  <Badge
+                    variant="secondary"
+                    key={k}
+                    className="uppercase tracking-wide"
+                  >
+                    {k}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          </div>
 
           <Tabs defaultValue="readme" className="flex-1">
             <TabsList>
@@ -353,169 +348,188 @@ const PackagePage = () => {
             </TabsContent>
 
             <TabsContent value="versions" className="space-y-4">
-              {versions.map((v: PackageVersion) => (
-                <Card
-                  key={v.version}
-                  className={v.yanked ? "opacity-60" : "hover:bg-accent"}
-                >
-                  <CardContent className="cursor-pointer">
-                    <div className="space-y-2">
-                      <div className="flex items-start justify-between">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="text-lg font-semibold">
-                            v{v.version}
-                          </span>
-                          {v.version === pkg.default_version && (
-                            <Badge variant="default">Default</Badge>
-                          )}
-                          {v.yanked && (
-                            <Badge variant="destructive">Yanked</Badge>
-                          )}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {formatDate(v.created_at.toString())}
-                        </div>
-                      </div>
-
-                      {v.yanked && v.yanked_message && (
-                        <Alert variant="destructive" className="mt-2">
-                          <AlertTriangle className="h-4 w-4" />
-                          <AlertDescription>
-                            {v.yanked_message}
-                          </AlertDescription>
-                        </Alert>
-                      )}
-
-                      <div className="mt-1 flex flex-wrap items-center gap-4 text-sm">
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Scale className="h-4 w-4" />
-                          <span className="text-foreground">
-                            {v.license || "Unknown"}
-                          </span>
+              <Card>
+                <CardContent className="space-y-4">
+                  {versions.map((v: PackageVersion) => (
+                    <div
+                      key={v.version}
+                      className={v.yanked ? "opacity-60" : "hover:bg-accent"}
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="text-lg font-semibold">
+                              v{v.version}
+                            </span>
+                            {v.version === pkg.default_version && (
+                              <Badge variant="default">Default</Badge>
+                            )}
+                            {v.yanked && (
+                              <Badge variant="destructive">Yanked</Badge>
+                            )}
+                          </div>
+                          <div className="text-sm text-muted-foreground">
+                            {formatDate(v.created_at.toString())}
+                          </div>
                         </div>
 
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Weight className="h-4 w-4" />
-                          <span className="text-foreground">
-                            {formatBytes(Number(v.size))}
-                          </span>
-                        </div>
+                        {v.yanked && v.yanked_message && (
+                          <Alert variant="destructive" className="mt-2">
+                            <AlertTriangle className="h-4 w-4" />
+                            <AlertDescription>
+                              {v.yanked_message}
+                            </AlertDescription>
+                          </Alert>
+                        )}
 
-                        <div className="flex items-center gap-1 text-muted-foreground">
-                          <Download className="h-4 w-4" />
-                          <span className="text-foreground">
-                            {formatDownloads(Number(v.downloads))}
-                          </span>
-                        </div>
-
-                        {v.publisher && (
+                        <div className="mt-1 flex flex-wrap items-center gap-4 text-sm">
                           <div className="flex items-center gap-1 text-muted-foreground">
-                            <Users className="h-4 w-4" />
+                            <Scale className="h-4 w-4" />
                             <span className="text-foreground">
-                              Published by{" "}
-                              <Link
-                                href={`/users/${v.publisher.id}`}
-                                className="text-primary hover:underline"
-                              >
-                                {v.publisher.display_name}
-                              </Link>
+                              {v.license || "Unknown"}
                             </span>
                           </div>
-                        )}
+
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Weight className="h-4 w-4" />
+                            <span className="text-foreground">
+                              {formatBytes(Number(v.size))}
+                            </span>
+                          </div>
+
+                          <div className="flex items-center gap-1 text-muted-foreground">
+                            <Download className="h-4 w-4" />
+                            <span className="text-foreground">
+                              {formatDownloads(Number(v.downloads))}
+                            </span>
+                          </div>
+
+                          {v.publisher && (
+                            <div className="flex items-center gap-1 text-muted-foreground">
+                              <Users className="h-4 w-4" />
+                              <span className="text-foreground">
+                                Published by{" "}
+                                <Link
+                                  href={`/users/${v.publisher.id}`}
+                                  className="text-primary hover:underline"
+                                >
+                                  {v.publisher.display_name}
+                                </Link>
+                              </span>
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="contributors" className="space-y-4">
-              {defaultVersion?.authors?.map((author, index) => (
-                <Card key={index} className="hover:bg-accent">
-                  <CardContent className="flex items-center gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <span className="font-semibold">{author.name}</span>
-                      </div>
-                      <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
-                        {author.email && <span>{author.email}</span>}
-                        {author.url && (
-                          <Link
-                            href={author.url}
-                            className="text-primary hover:underline"
-                            target="_blank"
-                            rel="noreferrer"
-                          >
-                            {author.url}
-                          </Link>
-                        )}
+              <Card>
+                <CardContent className="space-y-4">
+                  {defaultVersion?.authors?.map((author, index) => (
+                    <div key={index} className="hover:bg-accent">
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold">{author.name}</span>
+                          </div>
+                          <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
+                            {author.email && <span>{author.email}</span>}
+                            {author.url && (
+                              <Link
+                                href={author.url}
+                                className="text-primary hover:underline"
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                {author.url}
+                              </Link>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {(!defaultVersion || defaultVersion.authors?.length === 0) && (
-                <div className="text-center text-muted-foreground py-12">
-                  No authors found for this version.
-                </div>
-              )}
+                  ))}
+                  {(!defaultVersion || defaultVersion.authors?.length === 0) && (
+                    <div className="text-center text-muted-foreground py-12">
+                      No authors found for this version.
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
             </TabsContent>
 
             <TabsContent value="audits" className="space-y-4">
-              {audits.map((audit: Audit) => (
-                <Card key={audit.id} className="hover:bg-accent">
-                  <CardContent>
-                    <div className="flex items-start gap-3">
-                      {getAuditIcon(audit.action)}
-                      <div className="flex-1">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className="font-semibold">
-                            {formatAuditAction(audit.action)}
-                          </span>
-                          <Badge variant="outline">
-                            v{audit.package_version_id}
-                          </Badge>
-                        </div>
-                        <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
-                          {audit.user && (
-                            <span>
-                              by{" "}
-                              <Link
-                                href={`/users/${audit.user.id}`}
-                                className="text-primary hover:underline"
-                              >
-                                {audit.user.display_name}
-                              </Link>
+              <Card>
+                <CardContent className="space-y-4">
+                  {audits.map((audit: Audit) => (
+                    <div key={audit.id} className="hover:bg-accent">
+                      <div className="flex items-start gap-3">
+                        {getAuditIcon(audit.action)}
+                        <div className="flex-1">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="font-semibold">
+                              {formatAuditAction(audit.action)}
                             </span>
-                          )}
-                          <span>{formatDate(audit.timestamp.toString())}</span>
+                            <Badge variant="outline">
+                              v{audit.package_version_id}
+                            </Badge>
+                          </div>
+                          <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
+                            {audit.user && (
+                              <span>
+                                by{" "}
+                                <Link
+                                  href={`/users/${audit.user.id}`}
+                                  className="text-primary hover:underline"
+                                >
+                                  {audit.user.display_name}
+                                </Link>
+                              </span>
+                            )}
+                            <span>{formatDate(audit.timestamp.toString())}</span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
+                  ))}
+                </CardContent>
+              </Card>
             </TabsContent>
           </Tabs>
         </div>
 
         <Card className="h-max lg:w-96">
           <CardContent className="space-y-4">
-            <div className="rounded-lg bg-muted p-1 flex items-center justify-between">
-              <code className="truncate px-2 text-sm">
-                mci install {pkg.id}
-              </code>
-              <Button variant="outline" size="icon" onClick={handleCopy}>
-                {copied ? (
-                  <Check className="h-4 w-4 text-primary" />
-                ) : (
-                  <Copy className="h-4 w-4" />
-                )}
-              </Button>
-            </div>
+            {pkg.is_deprecated && (
+              <Alert variant="destructive">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertDescription>
+                  <strong>This package is deprecated.</strong>{" "}
+                  {pkg.deprecation_message ||
+                    "Please consider using an alternative."}
+                </AlertDescription>
+              </Alert>
+            )}
 
             {defaultVersion ? (
               <>
+                <div className="rounded-lg bg-muted p-1 flex items-center justify-between">
+                  <code className="truncate px-2 text-sm">
+                    mci install {pkg.id}
+                  </code>
+                  <Button variant="outline" size="icon" onClick={handleCopy}>
+                    {copied ? (
+                      <Check className="h-4 w-4 text-primary" />
+                    ) : (
+                      <Copy className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
                 <div className="flex justify-between">
                   <span className="flex items-center gap-2">
                     <Package className="h-4 w-4" />
@@ -566,8 +580,6 @@ const PackagePage = () => {
               </Alert>
             )}
 
-            <Separator />
-
             {pkg.repository && (
               <div className="flex flex-col gap-3">
                 <span className="text-lg font-bold">Repository</span>
@@ -602,20 +614,22 @@ const PackagePage = () => {
               </div>
             )}
 
-            <div className="flex flex-col gap-3">
-              <span className="text-lg font-bold">Owner(s)</span>
-              <div className="flex flex-col gap-1">
-                {owners.map((o: PackageOwner) => (
-                  <Link
-                    key={o.user.id}
-                    href={`/users/${o.user.id}`}
-                    className="text-primary hover:underline"
-                  >
-                    {o.user.display_name}
-                  </Link>
-                ))}
+            {owners.length > 0 && (
+              <div className="flex flex-col gap-3">
+                <span className="text-lg font-bold">Owner(s)</span>
+                <div className="flex flex-col gap-1">
+                  {owners.map((o: PackageOwner) => (
+                    <Link
+                      key={o.user.id}
+                      href={`/users/${o.user.id}`}
+                      className="text-primary hover:underline"
+                    >
+                      {o.user.display_name}
+                    </Link>
+                  ))}
+                </div>
               </div>
-            </div>
+            )}
 
             <Separator />
 
