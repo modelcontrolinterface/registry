@@ -8,8 +8,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 
 type UserApiResponse = GetUserResult;
-type UserProfile = UserApiResponse extends { user: infer U } ? U : never;
-type PackagesData = UserApiResponse extends { owned: infer O } ? O : never;
+
+interface OwnedDataStructure {
+  packages: any[];
+  pagination: {
+    total: number;
+    totalPages: number;
+  };
+}
+
+interface UserProfileStructure {
+  id: string;
+  display_name: string;
+  avatar_url: string | null;
+}
+
+type UserProfile = UserProfileStructure;
+type PackagesData = OwnedDataStructure;
 
 const ProfilePage = () => {
   const router = useRouter();
