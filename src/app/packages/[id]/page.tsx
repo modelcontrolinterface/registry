@@ -4,6 +4,8 @@ import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
 
 import { format } from "date-fns";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import Link from "next/link";
 import {
   Copy,
@@ -331,9 +333,9 @@ const PackagePage = () => {
                       <Skeleton className="h-4 w-3/4" />
                     </div>
                   ) : (
-                    <pre className="font-sans whitespace-pre-wrap">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {readmeContent}
-                    </pre>
+                    </ReactMarkdown>
                   )}
                 </CardContent>
               </Card>
@@ -343,9 +345,9 @@ const PackagePage = () => {
               <Card>
                 <CardContent className="prose prose-sm max-w-none p-6 dark:prose-invert">
                   {defaultVersion?.changelog ? (
-                    <pre className="font-sans whitespace-pre-wrap">
+                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
                       {defaultVersion.changelog}
-                    </pre>
+                    </ReactMarkdown>
                   ) : (
                     <p className="text-muted-foreground">No changelog available.</p>
                   )}
