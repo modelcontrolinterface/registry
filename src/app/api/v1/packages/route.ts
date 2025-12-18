@@ -75,6 +75,7 @@ const getPackages = async (
         default_version: packages.default_version,
         categories: packages.categories,
         is_verified: packages.is_verified,
+        is_deprecated: packages.is_deprecated,
         downloads: sql<number>`0`.as("downloads"),
         updated_at: packages.updated_at,
         createdAt: packages.created_at,
