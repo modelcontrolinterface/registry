@@ -1,12 +1,13 @@
 "use client";
 
-import { Suspense } from "react"; // Import Suspense
+import { Suspense } from "react";
+
 import {
   Select,
-  SelectContent,
   SelectItem,
-  SelectTrigger,
   SelectValue,
+  SelectContent,
+  SelectTrigger,
 } from "@/components/ui/select";
 import { useSearch } from "@/hooks/use-search";
 import Pagination from "@/components/pagination";
@@ -25,10 +26,10 @@ const SearchPageContent = () => {
     packages,
     pagination,
     initialLoad,
-    handleCategoriesChange,
     handlePageChange,
     handleSortChange,
     handleVerifiedChange,
+    handleCategoriesChange,
   } = useSearch();
 
   return (
@@ -106,8 +107,8 @@ const SearchPageContent = () => {
         <div className="flex justify-center mt-6">
           <Pagination
             page={page}
-            totalPages={pagination.totalPages}
             onPageChange={handlePageChange}
+            totalPages={pagination.totalPages}
           />
         </div>
       )}

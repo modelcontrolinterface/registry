@@ -7,7 +7,9 @@ import { Suspense, useEffect, useState } from "react"
 
 import Link from "next/link"
 import Logo from "@/components/logo"
+import SearchInput from "@/components/search"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -16,8 +18,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
-import SearchInput from "@/components/search"
-import { Skeleton } from "@/components/ui/skeleton"
 
 interface UserProfile {
   id: string
@@ -62,7 +62,7 @@ const Navbar = () => {
     }
 
     loadUser()
-  }, [])
+  }, [supabase.auth])
 
   const handleSignInWithGithub = async () => {
     await supabase.auth.signInWithOAuth({

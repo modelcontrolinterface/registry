@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useParams, useRouter, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 
 import ItemList from "@/components/item-list";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -9,8 +9,11 @@ import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 
 type UserApiResponse = GetUserResult;
 
+import Image from "next/image";
+import { PackageCardProps } from "@/components/package-card";
+
 interface OwnedDataStructure {
-  packages: any[];
+  packages: PackageCardProps[];
   pagination: {
     total: number;
     totalPages: number;
@@ -23,15 +26,13 @@ interface UserProfileStructure {
   avatar_url: string | null;
 }
 
-type UserProfile = UserProfileStructure;
 type PackagesData = OwnedDataStructure;
+type UserProfile = UserProfileStructure;
 
 const ProfilePage = () => {
-  const router = useRouter();
   const params = useParams();
-  const searchParams = useSearchParams();
-
   const id = params.id as string;
+  const searchParams = useSearchParams();
 
   const [loading, setLoading] = useState(true);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
@@ -54,15 +55,15 @@ const ProfilePage = () => {
         const res = await fetch(`/api/v1/users/${id}?${params.toString()}`);
 
         if (!res.ok) {
-          console.warn(`User profile for ${id} not found. Status: ${res.status}`);
           setUserProfile(null);
           return;
         }
 
         const data: UserApiResponse = await res.json();
+
         setOwnedData(data?.owned || null);
         setUserProfile(data?.user || null);
-      } catch (error) {
+      } catch (error: unknown) {
         console.error("Error fetching user data:", error);
         setUserProfile(null);
       } finally {
@@ -107,9 +108,11 @@ const ProfilePage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-4 mb-4">
-        <img
+        <Image
           src={userProfile.avatar_url || "https://i.pravatar.cc/150?img=5"}
           alt={userProfile.display_name}
+          width={64}
+          height={64}
           className="w-16 h-16 rounded-full"
         />
         <div>
@@ -127,8 +130,8 @@ const ProfilePage = () => {
         }}
         page={ownedPage}
         onPageChange={setOwnedPage}
-        totalPages={ownedData?.pagination.totalPages || 1}
         total={ownedData?.pagination.total || 0}
+        totalPages={ownedData?.pagination.totalPages || 1}
       />
     </div>
   );

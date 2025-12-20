@@ -16,7 +16,7 @@ export default defineConfig({
   entities: {
     roles: {
       provider: "supabase",
-      include: ["service_admin"],
+      include: ["package_admin"],
     },
   },
 });

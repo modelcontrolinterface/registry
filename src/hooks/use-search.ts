@@ -19,11 +19,11 @@ export const useSearch = () => {
   const [categories, setCategories] = useState<string>(initialCategories);
 
   const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [initialLoad, setInitialLoad] = useState<boolean>(true);
   const [packages, setPackages] = useState<GetPackagesApiResponse["packages"]>(
     [],
   );
-  const [error, setError] = useState<string | null>(null);
-  const [initialLoad, setInitialLoad] = useState<boolean>(true);
   const [pagination, setPagination] = useState<
     GetPackagesApiResponse["pagination"] | null
   >(null);
@@ -75,7 +75,7 @@ export const useSearch = () => {
 
         setPackages(processedPackages || []);
         setPagination(json.pagination || null);
-      } catch (err: any) {
+      } catch (err: unknown) {
         if (err.name === "AbortError") return;
         setError(err.message || "Failed to fetch");
         setPackages([]);

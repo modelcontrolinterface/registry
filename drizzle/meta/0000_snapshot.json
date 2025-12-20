@@ -1,5 +1,5 @@
 {
-  "id": "2e69888a-a4f9-4af9-a6b3-fe8f7054a2e2",
+  "id": "8bb668eb-4955-4af5-afa2-af82dd6ff937",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -10,9 +10,20 @@
       "columns": {
         "id": {
           "name": "id",
-          "type": "serial",
+          "type": "bigint",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "audits_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "9223372036854775807",
+            "cache": "1",
+            "cycle": false
+          }
         },
         "action": {
           "name": "action",
@@ -25,17 +36,23 @@
           "name": "user_id",
           "type": "uuid",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "package_id": {
           "name": "package_id",
           "type": "varchar(100)",
           "primaryKey": false,
-          "notNull": true
+          "notNull": false
         },
         "package_version_id": {
           "name": "package_version_id",
           "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "version_number": {
+          "name": "version_number",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
@@ -126,7 +143,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "restrict",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "audits_package_id_packages_id_fk": {
@@ -139,7 +156,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         },
         "audits_package_version_id_package_versions_id_fk": {
@@ -152,7 +169,7 @@
           "columnsTo": [
             "id"
           ],
-          "onDelete": "cascade",
+          "onDelete": "set null",
           "onUpdate": "no action"
         }
       },
@@ -346,13 +363,7 @@
         },
         "version": {
           "name": "version",
-          "type": "varchar(30)",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "size": {
-          "name": "size",
-          "type": "bigint",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": true
         },
@@ -388,15 +399,15 @@
           "notNull": true,
           "default": false
         },
-        "yanked_message": {
-          "name": "yanked_message",
-          "type": "varchar(200)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "yanked_at": {
           "name": "yanked_at",
           "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "yanked_message": {
+          "name": "yanked_message",
+          "type": "varchar(200)",
           "primaryKey": false,
           "notNull": false
         },
@@ -405,13 +416,6 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
-        },
-        "downloads": {
-          "name": "downloads",
-          "type": "bigint",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "0"
         },
         "readme": {
           "name": "readme",
@@ -425,6 +429,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "tarball": {
+          "name": "tarball",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "abi_version": {
           "name": "abi_version",
           "type": "varchar(50)",
@@ -437,11 +447,18 @@
           "primaryKey": false,
           "notNull": true
         },
-        "tarball": {
-          "name": "tarball",
-          "type": "text",
+        "size": {
+          "name": "size",
+          "type": "bigint",
           "primaryKey": false,
           "notNull": true
+        },
+        "downloads": {
+          "name": "downloads",
+          "type": "bigint",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
         },
         "created_at": {
           "name": "created_at",
@@ -634,11 +651,15 @@
         },
         "package_versions_yanked_consistency": {
           "name": "package_versions_yanked_consistency",
-          "value": "(NOT \"package_versions\".\"yanked\") OR (\"package_versions\".\"yanked_at\" IS NOT NULL AND \"package_versions\".\"yanked_by_user_id\" IS NOT NULL)"
+          "value": "\n        (\"package_versions\".\"yanked\" IS FALSE AND \"package_versions\".\"yanked_at\" IS NULL AND \"package_versions\".\"yanked_by_user_id\" IS NULL) OR \n        (\"package_versions\".\"yanked\" IS TRUE AND \"package_versions\".\"yanked_at\" IS NOT NULL AND \"package_versions\".\"yanked_by_user_id\" IS NOT NULL)\n      "
         },
         "package_versions_license_specified": {
           "name": "package_versions_license_specified",
           "value": "\"package_versions\".\"license\" IS NOT NULL OR \"package_versions\".\"license_file\" IS NOT NULL"
+        },
+        "package_versions_authors_format": {
+          "name": "package_versions_authors_format",
+          "value": "jsonb_typeof(\"package_versions\".\"authors\") = 'array'"
         },
         "package_versions_size_positive": {
           "name": "package_versions_size_positive",
@@ -682,7 +703,7 @@
         },
         "default_version": {
           "name": "default_version",
-          "type": "uuid",
+          "type": "varchar(100)",
           "primaryKey": false,
           "notNull": false
         },
@@ -693,12 +714,6 @@
           "notNull": true,
           "default": "ARRAY[]::text[]"
         },
-        "description": {
-          "name": "description",
-          "type": "varchar(500)",
-          "primaryKey": false,
-          "notNull": false
-        },
         "homepage": {
           "name": "homepage",
           "type": "text",
@@ -708,6 +723,12 @@
         "repository": {
           "name": "repository",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description": {
+          "name": "description",
+          "type": "varchar(500)",
           "primaryKey": false,
           "notNull": false
         },
@@ -792,8 +813,8 @@
           "method": "btree",
           "with": {}
         },
-        "packages_categories_idx": {
-          "name": "packages_categories_idx",
+        "packages_categories_gin_idx": {
+          "name": "packages_categories_gin_idx",
           "columns": [
             {
               "expression": "categories",
@@ -804,7 +825,22 @@
           ],
           "isUnique": false,
           "concurrently": false,
-          "method": "btree",
+          "method": "gin",
+          "with": {}
+        },
+        "packages_keywords_gin_idx": {
+          "name": "packages_keywords_gin_idx",
+          "columns": [
+            {
+              "expression": "keywords",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "gin",
           "with": {}
         },
         "packages_is_verified_idx": {
@@ -875,7 +911,7 @@
             "authenticated"
           ],
           "using": "\n        (select auth.uid()) = \"packages\".\"primary_owner\" OR\n        EXISTS (\n          SELECT 1 FROM package_owners po\n          WHERE po.package_id = \"packages\".\"id\" AND po.user_id = (select auth.uid())\n        )\n      ",
-          "withCheck": "\n        ((select auth.uid()) = \"packages\".\"primary_owner\" OR\n        EXISTS (\n          SELECT 1 FROM package_owners po\n          WHERE po.package_id = \"packages\".\"id\" AND po.user_id = (select auth.uid())\n        )) AND\n        (\"packages\".\"is_verified\" = (SELECT is_verified FROM packages WHERE id = \"packages\".\"id\"))\n      "
+          "withCheck": "\n        ((select auth.uid()) = \"packages\".\"primary_owner\" OR\n        EXISTS (\n          SELECT 1 FROM package_owners po\n          WHERE po.package_id = \"packages\".\"id\" AND po.user_id = (select auth.uid())\n        )) AND\n        (\"packages\".\"primary_owner\" = (SELECT primary_owner FROM packages WHERE id = \"packages\".\"id\")) AND\n        (\"packages\".\"is_verified\" = (SELECT is_verified FROM packages WHERE id = \"packages\".\"id\"))\n      "
         },
         "packages_delete_primary_owner": {
           "name": "packages_delete_primary_owner",
@@ -900,11 +936,15 @@
       "checkConstraints": {
         "packages_id_format": {
           "name": "packages_id_format",
-          "value": "\"packages\".\"id\" ~ '^[a-z0-9-]+$'"
+          "value": "\"packages\".\"id\" ~ '^[a-z](?:[a-z0-9_-]{0,62}[a-z0-9])?$'"
         },
         "packages_name_format": {
           "name": "packages_name_format",
           "value": "\"packages\".\"name\" ~ '^[a-z](?:[a-z0-9_-]{0,62}[a-z0-9])?$'"
+        },
+        "packages_keywords_format": {
+          "name": "packages_keywords_format",
+          "value": "array_to_string(\"packages\".\"keywords\", '') ~ '^[a-z0-9_-]*$'"
         },
         "packages_keywords_max_length": {
           "name": "packages_keywords_max_length",
@@ -913,6 +953,10 @@
         "packages_deprecation_consistency": {
           "name": "packages_deprecation_consistency",
           "value": "(NOT \"packages\".\"is_deprecated\") OR (\"packages\".\"deprecation_message\" IS NOT NULL)"
+        },
+        "packages_default_version_format": {
+          "name": "packages_default_version_format",
+          "value": "\"packages\".\"default_version\" IS NULL OR \"packages\".\"default_version\" ~ '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$'"
         }
       },
       "isRLSEnabled": false
@@ -925,8 +969,7 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
+          "notNull": true
         },
         "email": {
           "name": "email",
@@ -998,15 +1041,6 @@
             "public"
           ],
           "using": "true"
-        },
-        "users_insert_own": {
-          "name": "users_insert_own",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "authenticated"
-          ],
-          "withCheck": "(select auth.uid()) = \"users\".\"id\""
         },
         "users_update_own": {
           "name": "users_update_own",

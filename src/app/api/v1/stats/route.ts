@@ -29,7 +29,7 @@ export const GET = async () => {
     };
 
     return NextResponse.json(stats, { status: 200 });
-  } catch (err: any) {
+  } catch (err: unknown) {
     return NextResponse.json(
       { message: "Internal server error", error: String(err) },
       { status: 500 },

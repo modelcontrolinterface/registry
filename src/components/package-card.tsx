@@ -8,12 +8,12 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 
 interface PackageCardProps {
   id: string
-  categories: string[]
   name: string
+  updated_at: Date
+  downloads: number
+  categories: string[]
   is_verified: boolean
   is_deprecated: boolean
-  downloads: number
-  updated_at: Date
   description: string | null
   default_version: string | null
 }
@@ -30,9 +30,8 @@ const PackageCard = ({
   default_version,
 }: PackageCardProps) => {
   const formatDownloads = (count: number) => {
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
     if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
-
+    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
     return count.toString()
   }
 
@@ -54,7 +53,9 @@ const PackageCard = ({
                 {is_verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
               </div>
               <div className="flex gap-2">
-                <PackageBadge type={categories[0]}/>
+                {categories.map((category) => (
+                  <PackageBadge key={category} type={category} />
+                ))}
                 {is_deprecated && <Badge variant="destructive">Deprecated</Badge>}
               </div>
             </div>

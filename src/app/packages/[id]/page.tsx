@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
 import { useParams } from "next/navigation";
+import { useState, useEffect } from "react";
 
-import { format } from "date-fns";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
 import Link from "next/link";
+import { format } from "date-fns";
+import remarkGfm from "remark-gfm";
+import ReactMarkdown from "react-markdown";
 import {
   Copy,
   Scale,
@@ -82,7 +82,7 @@ interface Package {
   id: string;
   name: string;
   categories: ("server" | "sandbox" | "interceptor")[];
-  primary_owner: string;
+  primary_owner: User;
   default_version: string | null;
   keywords: string[] | null;
   description: string | null;
@@ -94,14 +94,14 @@ interface Package {
   created_at: Date;
   updated_at: Date;
   downloads: number;
-  default_version_data: PackageVersion | null;
-  primaryOwner?: User;
 }
 
 interface Stats {
   total_versions: number;
   total_downloads: number;
-  latest_version: string | null;
+  max_version: string | null;
+  newest_version: string | null;
+  max_stable_version: string | null;
   yanked_versions: number;
   total_owners: number;
   total_audits: number;
@@ -110,14 +110,20 @@ interface Stats {
 interface GetPackageResultExplicit {
   package: Package;
   owners: PackageOwner[];
-  versions: PackageVersion[];
+  versions: Record<string, PackageVersion>;
   audits: Audit[];
   stats: Stats;
 }
 
+
+
 const PackagePage = () => {
   const params = useParams();
-  const { id } = params;
+  const fullId = params.id as string;
+
+  const [packageId, versionFromUrl] = fullId.includes("%40")
+    ? fullId.split("%40")
+    : [fullId, undefined];
 
   const [copied, setCopied] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -126,15 +132,17 @@ const PackagePage = () => {
   const [changelogLoading, setChangelogLoading] = useState(false);
   const [changelogContent, setChangelogContent] = useState<string>("");
   const [data, setData] = useState<GetPackageResultExplicit | null>(null);
+  const [currentDisplayVersion, setCurrentDisplayVersion] = useState<PackageVersion | null>(null);
+
 
   useEffect(() => {
     const loadPackageData = async () => {
       setLoading(true);
       try {
-        const res = await fetch(`/api/v1/packages/${id}`);
+        const res = await fetch(`/api/v1/packages/${packageId}`);
 
         if (!res.ok) {
-          console.warn(`Package ${id} not found. Status: ${res.status}`);
+          console.warn(`Package ${packageId} not found. Status: ${res.status}`);
           setData(null);
           return;
         }
@@ -142,13 +150,17 @@ const PackagePage = () => {
         const packageData: GetPackageResultExplicit = await res.json();
         setData(packageData);
 
-        // Fetch README content
-        if (packageData.package.default_version_data?.readme) {
+        const targetVersion = versionFromUrl || packageData.package.default_version;
+        const fetchedVersionData = targetVersion
+          ? packageData.versions[targetVersion]
+          : null;
+        setCurrentDisplayVersion(fetchedVersionData);
+
+
+        if (fetchedVersionData?.readme) {
           setReadmeLoading(true);
           try {
-            const readmeRes = await fetch(
-              packageData.package.default_version_data.readme,
-            );
+            const readmeRes = await fetch(fetchedVersionData.readme);
             if (readmeRes.ok) {
               const text = await readmeRes.text();
               setReadmeContent(text);
@@ -172,13 +184,10 @@ const PackagePage = () => {
           );
         }
 
-        // Fetch Changelog content
-        if (packageData.package.default_version_data?.changelog) {
+        if (fetchedVersionData?.changelog) {
           setChangelogLoading(true);
           try {
-            const changelogRes = await fetch(
-              packageData.package.default_version_data.changelog,
-            );
+            const changelogRes = await fetch(fetchedVersionData.changelog);
             if (changelogRes.ok) {
               const text = await changelogRes.text();
               setChangelogContent(text);
@@ -209,7 +218,7 @@ const PackagePage = () => {
     };
 
     loadPackageData();
-  }, [id]);
+  }, [packageId, versionFromUrl]);
 
   const formatDownloads = (n: number) =>
     n >= 1_000_000
@@ -219,15 +228,16 @@ const PackagePage = () => {
         : String(n);
 
   const formatBytes = (bytes: number) => {
-    if (bytes >= 1_000_000_000) return `${(bytes / 1_000_000_000).toFixed(2)} GB`;
-    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)} MB`;
-    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)} KB`;
-    return `${bytes} B`;
+    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)}MB`;
+    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)}KB`;
+    return `${bytes}B`;
   };
 
   const handleCopy = () => {
     if (!data) return;
-    const installCmd = `mci install ${data.package.id}`;
+    const versionSuffix = versionFromUrl ? `@${versionFromUrl}` : "";
+    const installCmd = `mci install ${data.package.id}${versionSuffix}`;
+
     try {
       navigator.clipboard.writeText(installCmd);
       setCopied(true);
@@ -297,14 +307,13 @@ const PackagePage = () => {
       <div className="container mx-auto px-4 py-32 text-center">
         <h1 className="mb-4 text-2xl font-bold">Package Not Found</h1>
         <p className="text-muted-foreground">
-          The package with ID {id} could not be found.
+          The package with ID {packageId} could not be found.
         </p>
       </div>
     );
   }
 
   const { package: pkg, owners, versions, audits, stats } = data;
-  const defaultVersion = pkg.default_version_data;
 
   return (
     <div className="container mx-auto flex flex-col gap-8 px-4 py-8">
@@ -322,7 +331,11 @@ const PackagePage = () => {
                   <BadgeCheck className="text-blue-500" />
                 )}
               </div>
-              <PackageBadge type={pkg.categories[0]} />
+              <div className="flex flex-wrap gap-2">
+                {pkg.categories.map((category) => (
+                  <PackageBadge key={category} type={category} />
+                ))}
+              </div>
               <p className="mt-1 text-muted-foreground">
                 {pkg.description || "No description available"}
               </p>
@@ -349,7 +362,7 @@ const PackagePage = () => {
                 Versions ({stats.total_versions})
               </TabsTrigger>
               <TabsTrigger value="contributors">
-                Authors ({defaultVersion?.authors?.length || 0})
+                Authors ({currentDisplayVersion?.authors?.length || 0})
               </TabsTrigger>
               <TabsTrigger value="audits">
                 Audits ({stats.total_audits})
@@ -392,15 +405,13 @@ const PackagePage = () => {
               </Card>
             </TabsContent>
 
-            <TabsContent value="versions" className="space-y-4">
-              <Card>
-                <CardContent className="space-y-4">
-                  {versions.map((v: PackageVersion) => (
-                    <div
-                      key={v.version}
-                      className={v.yanked ? "opacity-60" : "hover:bg-accent"}
-                    >
-                      <div className="space-y-2">
+            <TabsContent value="versions" className="space-y-2">
+              {Object.values(versions)
+                .map((v: PackageVersion) => (
+                <div key={v.version} className={v.yanked ? "opacity-60 pointer-none" : ""}>
+                  <Card>
+                    <CardContent className="space-y-4">
+                      <Link href={`/packages/${packageId}@${v.version}`} className="space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex flex-wrap items-center gap-2">
                             <span className="text-lg font-semibold">
@@ -411,6 +422,15 @@ const PackagePage = () => {
                             )}
                             {v.yanked && (
                               <Badge variant="destructive">Yanked</Badge>
+                            )}
+                            {v.version === stats.max_version && (
+                              <Badge variant="secondary">Max Version</Badge>
+                            )}
+                            {v.version === stats.newest_version && (
+                              <Badge variant="secondary">Newest</Badge>
+                            )}
+                            {v.version === stats.max_stable_version && (
+                              <Badge variant="secondary">Max Stable</Badge>
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground">
@@ -454,33 +474,28 @@ const PackagePage = () => {
                               <Users className="h-4 w-4" />
                               <span className="text-foreground">
                                 Published by{" "}
-                                <Link
-                                  href={`/users/${v.publisher.id}`}
-                                  className="text-primary hover:underline"
-                                >
                                   {v.publisher.display_name}
-                                </Link>
                               </span>
                             </div>
                           )}
                         </div>
-                      </div>
-                    </div>
-                  ))}
-                  {(versions?.length === 0) && (
-                    <div className="text-center text-muted-foreground py-12">
-                      No versions found.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                      </Link>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+              {(Object.keys(versions)?.length === 0) && (
+                <div className="text-center text-muted-foreground py-12">
+                  No versions found.
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="contributors" className="space-y-4">
-              <Card>
-                <CardContent className="space-y-4">
-                  {defaultVersion?.authors?.map((author, index) => (
-                    <div key={index} className="hover:bg-accent">
+              {currentDisplayVersion?.authors?.map((author, index) => (
+                <div key={index}>
+                  <Card>
+                    <CardContent className="space-y-2">
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -501,15 +516,15 @@ const PackagePage = () => {
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))}
-                  {(!defaultVersion || defaultVersion.authors?.length === 0) && (
-                    <div className="text-center text-muted-foreground py-12">
-                      No authors found for this version.
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                    </CardContent>
+                  </Card>
+                </div>
+              ))}
+              {(!currentDisplayVersion || currentDisplayVersion.authors?.length === 0) && (
+                <div className="text-center text-muted-foreground py-12">
+                  No authors found for this version.
+                </div>
+              )}
             </TabsContent>
 
             <TabsContent value="audits" className="space-y-4">
@@ -570,11 +585,11 @@ const PackagePage = () => {
               </Alert>
             )}
 
-            {defaultVersion ? (
+            {currentDisplayVersion ? (
               <>
-                <div className="rounded-lg bg-muted p-1 flex items-center justify-between">
+                <div className="rounded-lg bg-background p-1 flex items-center justify-between">
                   <code className="truncate px-2 text-sm">
-                    mci install {pkg.id}
+                    mcim install {pkg.id}{versionFromUrl ? `@${versionFromUrl}` : ""}
                   </code>
                   <Button variant="outline" size="icon" onClick={handleCopy}>
                     {copied ? (
@@ -606,7 +621,7 @@ const PackagePage = () => {
                     <Scale className="h-4 w-4" />
                     <span>License</span>
                   </span>
-                  <span>{defaultVersion.license || "Unknown"}</span>
+                  <span>{currentDisplayVersion.license || "Unknown"}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -622,8 +637,10 @@ const PackagePage = () => {
                     <Weight className="h-4 w-4" />
                     <span>Size</span>
                   </span>
-                  <span>{formatBytes(Number(defaultVersion.size))}</span>
+                  <span>{formatBytes(Number(currentDisplayVersion.size))}</span>
                 </div>
+
+
               </>
             ) : (
               <Alert>

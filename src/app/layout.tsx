@@ -14,9 +14,9 @@ const space = Space_Mono({
 
 export const metadata: Metadata = {
   icons: ["/logo.svg"],
-  title: "MCIR: The MCI service registry",
+  title: "MCIR: The MCI package registry",
   description: `
-  MCIR is a registry of services that extend the functionality of the model
+  MCIR is a registry of packages that extend the functionality of the model
   control interface (MCI)
   `,
 

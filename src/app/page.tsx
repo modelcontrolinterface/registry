@@ -25,7 +25,7 @@ const Home = () => {
             MCI Registry
           </h1>
           <p className="text-muted-foreground md:text-lg tracking-wide">
-            Publish, find, and install all your services
+            Publish, find, and install all your packages
           </p>
         </div>
 

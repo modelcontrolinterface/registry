@@ -1,7 +1,11 @@
-import { eq, desc, sql } from "drizzle-orm";
+import { eq, desc, sql, getTableColumns } from "drizzle-orm";
+import * as schema from "@/db/schema";
 import { users, packages, package_versions } from "@/db/schema";
 import { NextRequest, NextResponse } from "next/server";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
+import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+
+type DbClient = PostgresJsDatabase<typeof schema>;
 
 interface OwnedPackagesData {
   packages: (typeof packages.$inferSelect & { downloads: number })[];
@@ -18,7 +22,10 @@ interface GetUserReturn {
 
 export type GetUserResult = GetUserReturn | null;
 
-const getUser = async (db: any, id: string): Promise<GetUserReturn | null> => {
+const getUser = async (
+  db: DbClient,
+  id: string,
+): Promise<GetUserReturn | null> => {
   const user = await db.query.users.findFirst({
     where: eq(users.id, id),
   });
@@ -29,13 +36,15 @@ const getUser = async (db: any, id: string): Promise<GetUserReturn | null> => {
 
   const ownedPackages = await db
     .select({
-      ...packages,
-      downloads: sql<number>`coalesce(sum(${package_versions.downloads}), 0)`.as("downloads"),
+      ...getTableColumns(packages),
+      downloads: sql<number>`coalesce(sum(${package_versions.downloads}), 0)`.as(
+        "downloads",
+      ),
     })
     .from(packages)
     .leftJoin(package_versions, eq(packages.id, package_versions.package_id))
     .where(eq(packages.primary_owner, user.id))
-    .groupBy(packages.id)
+    .groupBy(...Object.values(getTableColumns(packages)))
     .orderBy(desc(packages.created_at));
 
   return {

@@ -28,9 +28,7 @@ const useSearch = () => {
     if (e.key === "Enter") submit();
   };
 
-  useEffect(() => {
-    setQuery(searchParams?.get("q") || "");
-  }, [searchParams]);
+
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -64,8 +62,8 @@ const SearchInput = ({ large = false }: SearchInputProps) => {
         value={query}
         onKeyDown={handleKeyPress}
         onChange={(e) => setQuery(e.target.value)}
-        className="h-full pl-4"
-        placeholder="Search for a service"
+        className="h-full pl-4 border-2 border-primary"
+        placeholder="Search for a package"
       />
       <Button onClick={submit} className="aspect-square h-full">
         <Search />

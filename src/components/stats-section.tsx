@@ -48,7 +48,7 @@ const StatsSection = () => {
         <span className="text-2xl sm:text-3xl font-bold text-foreground">
           {stats.packages.toLocaleString()}
         </span>
-        <span className="text-muted-foreground">Services</span>
+        <span className="text-muted-foreground">Packages</span>
       </div>
 
       <div className="flex flex-col items-center text-center">
