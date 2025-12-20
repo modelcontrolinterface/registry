@@ -15,17 +15,17 @@ type UpdatePackageVersionInput = z.infer<typeof updatePackageVersionSchema>;
 
 export const PATCH = async (
   request: Request,
-  { params }: { params: { id: string; version_id: string } },
+  { params }: { params: Promise<{ id: string; version_id: string }> },
 ) => {
   try {
     const { rls, supabase } = await createDrizzleSupabaseClient();
-    const { id: package_id, version_id: version } = params;
+    const { id: package_id, version_id: version } = await params;
     const body = await request.json();
 
     const validation = updatePackageVersionSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { message: "Invalid request body", errors: validation.error.errors },
+        { message: "Invalid request body", errors: validation.error.issues },
         { status: 400 },
       );
     }

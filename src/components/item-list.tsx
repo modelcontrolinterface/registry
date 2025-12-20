@@ -13,7 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
 import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 
-type Package = NonNullable<GetUserResult>["owned"]["packages"][number];
+export type Package = NonNullable<GetUserResult>["owned"]["packages"][number];
 
 interface ItemListProps {
   sort: string;

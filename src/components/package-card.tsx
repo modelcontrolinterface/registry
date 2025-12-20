@@ -6,7 +6,7 @@ import PackageBadge from "@/components/package-badge"
 import { Download, Calendar, Server, BadgeCheck } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
-interface PackageCardProps {
+export interface PackageCardProps {
   id: string
   name: string
   updated_at: Date

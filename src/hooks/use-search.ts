@@ -76,8 +76,8 @@ export const useSearch = () => {
         setPackages(processedPackages || []);
         setPagination(json.pagination || null);
       } catch (err: unknown) {
-        if (err.name === "AbortError") return;
-        setError(err.message || "Failed to fetch");
+        if (err instanceof Error && err.name === "AbortError") return;
+        setError((err instanceof Error ? err.message : String(err)) || "Failed to fetch");
         setPackages([]);
         setPagination(null);
       } finally {

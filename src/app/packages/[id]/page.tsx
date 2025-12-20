@@ -406,11 +406,10 @@ const PackagePage = () => {
             </TabsContent>
 
             <TabsContent value="versions" className="space-y-2">
-              {Object.values(versions)
-                .map((v: PackageVersion) => (
-                <div key={v.version} className={v.yanked ? "opacity-60 pointer-none" : ""}>
-                  <Card>
-                    <CardContent className="space-y-4">
+              {Object.values(versions).map((v: PackageVersion) => (
+                <Card>
+                  <CardContent className="space-y-4">
+                    <div key={v.version} className={v.yanked ? "opacity-60 pointer-none" : ""}>
                       <Link href={`/packages/${packageId}@${v.version}`} className="space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex flex-wrap items-center gap-2">
@@ -480,22 +479,26 @@ const PackagePage = () => {
                           )}
                         </div>
                       </Link>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
               {(Object.keys(versions)?.length === 0) && (
-                <div className="text-center text-muted-foreground py-12">
-                  No versions found.
-                </div>
+                <Card>
+                  <CardContent className="space-y-2">
+                    <div className="text-center text-muted-foreground py-12">
+                      No versions found.
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </TabsContent>
 
-            <TabsContent value="contributors" className="space-y-4">
+            <TabsContent value="contributors" className="space-y-2">
               {currentDisplayVersion?.authors?.map((author, index) => (
-                <div key={index}>
-                  <Card>
-                    <CardContent className="space-y-2">
+                <Card>
+                  <CardContent className="space-y-2">
+                    <div key={index}>
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -516,21 +519,25 @@ const PackagePage = () => {
                           </div>
                         </div>
                       </div>
-                    </CardContent>
-                  </Card>
-                </div>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
               {(!currentDisplayVersion || currentDisplayVersion.authors?.length === 0) && (
-                <div className="text-center text-muted-foreground py-12">
-                  No authors found for this version.
-                </div>
+                <Card>
+                  <CardContent className="space-y-4">
+                    <div className="text-center text-muted-foreground py-12">
+                      No authors found for this version.
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </TabsContent>
 
             <TabsContent value="audits" className="space-y-4">
-              <Card>
-                <CardContent className="space-y-4">
-                  {audits.map((audit: Audit) => (
+              {audits.map((audit: Audit) => (
+                <Card>
+                  <CardContent className="space-y-4">
                     <div key={audit.id} className="hover:bg-accent">
                       <div className="flex items-start gap-3">
                         {getAuditIcon(audit.action)}
@@ -560,14 +567,18 @@ const PackagePage = () => {
                         </div>
                       </div>
                     </div>
-                  ))}
-                  {(audits?.length === 0) && (
+                  </CardContent>
+                </Card>
+              ))}
+              {(audits?.length === 0) && (
+                <Card>
+                  <CardContent className="space-y-4">
                     <div className="text-center text-muted-foreground py-12">
                       No audits found.
                     </div>
-                  )}
-                </CardContent>
-              </Card>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
           </Tabs>
         </div>

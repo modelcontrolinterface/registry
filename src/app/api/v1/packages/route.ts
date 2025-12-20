@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { packages, users, package_versions, package_owners } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 import { and, asc, desc, eq, ilike, or, sql, Column, SQL } from "drizzle-orm";
+import { PgColumn } from "drizzle-orm/pg-core";
 
 export type GetPackagesResult = Awaited<ReturnType<typeof getPackages>>;
 
@@ -143,7 +144,7 @@ const getPackages = async (
       .leftJoin(contributors, eq(packages.id, contributors.package_id))
       .where(where);
 
-    let orderByClause: (Column | SQL)[];
+    let orderByClause: (PgColumn | SQL)[];
 
     switch (sort) {
       case "downloads":
@@ -273,7 +274,7 @@ export const POST = async (request: Request) => {
     const validation = createPackageSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { message: "Invalid request body", errors: validation.error.errors },
+        { message: "Invalid request body", errors: validation.error.issues },
         { status: 400 },
       );
     }

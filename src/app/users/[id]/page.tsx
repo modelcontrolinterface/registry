@@ -10,10 +10,10 @@ import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 type UserApiResponse = GetUserResult;
 
 import Image from "next/image";
-import { PackageCardProps } from "@/components/package-card";
+import { Package } from "@/components/item-list";
 
 interface OwnedDataStructure {
-  packages: PackageCardProps[];
+  packages: Package[];
   pagination: {
     total: number;
     totalPages: number;

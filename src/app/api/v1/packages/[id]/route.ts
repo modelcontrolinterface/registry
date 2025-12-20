@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { NextResponse } from "next/server";
-import { desc, eq } from "drizzle-orm";
+import { desc, eq, and } from "drizzle-orm";
 import { packages, package_versions } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
@@ -219,17 +219,17 @@ type UpdatePackageInput = z.infer<typeof updatePackageSchema>;
 
 export const PATCH = async (
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) => {
   try {
     const { rls, supabase } = await createDrizzleSupabaseClient();
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const validation = updatePackageSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { message: "Invalid request body", errors: validation.error.errors },
+        { message: "Invalid request body", errors: validation.error.issues },
         { status: 400 },
       );
     }
@@ -323,11 +323,11 @@ export const PATCH = async (
 
 export const DELETE = async (
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) => {
   try {
     const { rls, supabase } = await createDrizzleSupabaseClient();
-    const { id } = params;
+    const { id } = await params;
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) {

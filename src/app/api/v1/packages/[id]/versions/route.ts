@@ -25,17 +25,17 @@ const createPackageVersionSchema = z.object({
 
 export const POST = async (
   request: Request,
-  { params }: { params: { id: string } },
+  { params }: { params: Promise<{ id: string }> },
 ) => {
   try {
     const { rls, supabase } = await createDrizzleSupabaseClient();
-    const { id: package_id } = params;
+    const { id: package_id } = await params;
     const body = await request.json();
 
     const validation = createPackageVersionSchema.safeParse(body);
     if (!validation.success) {
       return NextResponse.json(
-        { message: "Invalid request body", errors: validation.error.errors },
+        { message: "Invalid request body", errors: validation.error.issues },
         { status: 400 },
       );
     }
@@ -116,7 +116,7 @@ export const POST = async (
           abi_version,
           digest,
           tarball,
-        })
+        } as typeof package_versions.$inferInsert)
         .returning(),
     );
 
