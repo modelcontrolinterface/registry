@@ -2,13 +2,11 @@
 
 import Link from "next/link"
 import Logo from "@/components/logo"
-import { Github } from "lucide-react"
-import { Button } from "@/components/ui/button"
 
 const Footer = () => {
   return (
     <footer className="py-10 px-10 bg-background border-t border-border">
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-10 max-w-6xl mx-auto">
+      <div className="grid grid-cols-1 sm:grid-cols-4 md:grid-cols-5 gap-10 max-w-6xl mx-auto">
         <div className="space-y-2">
           <Link
             href="/"
@@ -28,6 +26,14 @@ const Footer = () => {
         </div>
 
         <div>
+          <h3 className="text-lg font-semibold mb-3">Get Help</h3>
+          <ul className="space-y-2 text-muted-foreground">
+            <li><Link href="/support" className="hover:text-foreground">Support</Link></li>
+            <li><Link href="https://github.com/modelcontrolinterface/registry/issues/new" className="hover:text-foreground">Report a Bug</Link></li>
+          </ul>
+        </div>
+
+        <div>
           <h3 className="text-lg font-semibold mb-3">Policies</h3>
           <ul className="space-y-2 text-muted-foreground">
             <li><Link href="/usage-policy" className="hover:text-foreground">Usage Policy</Link></li>
@@ -38,17 +44,14 @@ const Footer = () => {
           </ul>
         </div>
 
-        <div className="flex sm:justify-end items-start">
-          <Button variant="outline" size="icon" asChild>
-            <Link href="https://github.com/modelcontrolinterface" target="_blank">
-              <Github />
-            </Link>
-          </Button>
+        <div>
+          <h3 className="text-lg font-semibold mb-3">Social</h3>
+          <ul className="space-y-2 text-muted-foreground">
+            <li>
+            <Link href="https://github.com/modelcontrolinterface" target="_blank">Github</Link>
+            </li>
+          </ul>
         </div>
-      </div>
-
-      <div className="mt-10 text-center text-xs text-muted-foreground">
-        Made with ❤️ by the MCI team
       </div>
     </footer>
   )

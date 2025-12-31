@@ -1,7 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { formatDownloads } from "@/lib/utils";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 
 import Link from "next/link";
 import { format } from "date-fns";
@@ -61,27 +64,10 @@ interface PackageVersion {
   authors?: { name: string; email?: string; url?: string }[];
 }
 
-interface PackageOwner {
-  package_id: string;
-  user_id: string;
-  created_at: Date;
-  user: User;
-}
-
-interface Audit {
-  id: number;
-  action: string;
-  user_id: string;
-  package_id: string;
-  package_version_id: string | null;
-  timestamp: Date;
-  user?: User;
-}
-
 interface Package {
   id: string;
   name: string;
-  categories: ("server" | "sandbox" | "interceptor")[];
+  categories: ("hook" | "server" | "sandbox" | "interceptor")[];
   primary_owner: User;
   default_version: string | null;
   keywords: string[] | null;
@@ -109,13 +95,10 @@ interface Stats {
 
 interface GetPackageResultExplicit {
   package: Package;
-  owners: PackageOwner[];
+  owners: User[];
   versions: Record<string, PackageVersion>;
-  audits: Audit[];
   stats: Stats;
 }
-
-
 
 const PackagePage = () => {
   const params = useParams();
@@ -126,106 +109,20 @@ const PackagePage = () => {
     : [fullId, undefined];
 
   const [copied, setCopied] = useState(false);
-  const [loading, setLoading] = useState(true);
-  const [readmeLoading, setReadmeLoading] = useState(false);
-  const [readmeContent, setReadmeContent] = useState<string>("");
-  const [changelogLoading, setChangelogLoading] = useState(false);
-  const [changelogContent, setChangelogContent] = useState<string>("");
-  const [data, setData] = useState<GetPackageResultExplicit | null>(null);
-  const [currentDisplayVersion, setCurrentDisplayVersion] = useState<PackageVersion | null>(null);
 
+  const { data, error, isLoading } = useSWR<GetPackageResultExplicit>(
+    packageId ? `/api/v1/packages/${packageId}` : null,
+    fetcher
+  );
 
-  useEffect(() => {
-    const loadPackageData = async () => {
-      setLoading(true);
-      try {
-        const res = await fetch(`/api/v1/packages/${packageId}`);
+  const targetVersion = versionFromUrl || data?.package?.default_version;
+  const currentDisplayVersion =
+    data && targetVersion ? data.versions[targetVersion] : null;
 
-        if (!res.ok) {
-          console.warn(`Package ${packageId} not found. Status: ${res.status}`);
-          setData(null);
-          return;
-        }
-
-        const packageData: GetPackageResultExplicit = await res.json();
-        setData(packageData);
-
-        const targetVersion = versionFromUrl || packageData.package.default_version;
-        const fetchedVersionData = targetVersion
-          ? packageData.versions[targetVersion]
-          : null;
-        setCurrentDisplayVersion(fetchedVersionData);
-
-
-        if (fetchedVersionData?.readme) {
-          setReadmeLoading(true);
-          try {
-            const readmeRes = await fetch(fetchedVersionData.readme);
-            if (readmeRes.ok) {
-              const text = await readmeRes.text();
-              setReadmeContent(text);
-            } else {
-              setReadmeContent(
-                "# README not available\n\nNo README found for this version.",
-              );
-            }
-          }
-          catch (err) {
-            console.error("Error fetching README:", err);
-            setReadmeContent(
-              "# Error loading README\n\nCould not load README content.",
-            );
-          } finally {
-            setReadmeLoading(false);
-          }
-        } else {
-          setReadmeContent(
-            "# No README available\n\nThis package does not have a default version set yet.",
-          );
-        }
-
-        if (fetchedVersionData?.changelog) {
-          setChangelogLoading(true);
-          try {
-            const changelogRes = await fetch(fetchedVersionData.changelog);
-            if (changelogRes.ok) {
-              const text = await changelogRes.text();
-              setChangelogContent(text);
-            } else {
-              setChangelogContent(
-                "# Changelog not available\n\nNo changelog found for this version.",
-              );
-            }
-          } catch (err) {
-            console.error("Error fetching Changelog:", err);
-            setChangelogContent(
-              "# Error loading Changelog\n\nCould not load changelog content.",
-            );
-          } finally {
-            setChangelogLoading(false);
-          }
-        } else {
-          setChangelogContent(
-            "# No Changelog available\n\nThis package does not have a default version set yet.",
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching package data:", error);
-        setData(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadPackageData();
-  }, [packageId, versionFromUrl]);
-
-  const formatDownloads = (n: number) =>
-    n >= 1_000_000
-      ? `${(n / 1_000_000).toFixed(1)}M`
-      : n >= 1_000
-        ? `${(n / 1_000).toFixed(1)}K`
-        : String(n);
+  const readmeContent = currentDisplayVersion?.readme;
+  const readmeLoading = false;
+  const changelogContent = currentDisplayVersion?.changelog;
+  const changelogLoading = false;
 
   const formatBytes = (bytes: number) => {
     if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)}MB`;
@@ -247,24 +144,9 @@ const PackagePage = () => {
     }
   };
 
-  const getAuditIcon = (action: string) => {
-    if (action.includes("security"))
-      return <ShieldCheck className="h-4 w-4 text-green-500" />;
-    if (action.includes("yanked"))
-      return <AlertTriangle className="h-4 w-4 text-red-500" />;
-    if (action.includes("published"))
-      return <Package className="h-4 w-4 text-blue-500" />;
-    return <ShieldCheck className="h-4 w-4" />;
-  };
+  // Removed getAuditIcon and formatAuditAction functions here.
 
-  const formatAuditAction = (action: string) => {
-    return action
-      .split("_")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-      .join(" ");
-  };
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex flex-col lg:flex-row gap-4">
@@ -302,7 +184,7 @@ const PackagePage = () => {
     );
   }
 
-  if (!data) {
+  if (error || !data) {
     return (
       <div className="container mx-auto px-4 py-32 text-center">
         <h1 className="mb-4 text-2xl font-bold">Package Not Found</h1>
@@ -313,7 +195,7 @@ const PackagePage = () => {
     );
   }
 
-  const { package: pkg, owners, versions, audits, stats } = data;
+  const { package: pkg, owners, versions, stats } = data;
 
   return (
     <div className="container mx-auto flex flex-col gap-8 px-4 py-8">
@@ -333,7 +215,7 @@ const PackagePage = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {pkg.categories.map((category) => (
-                  <PackageBadge key={category} type={category} />
+                  <PackageBadge key={category} category={category} />
                 ))}
               </div>
               <p className="mt-1 text-muted-foreground">
@@ -364,14 +246,11 @@ const PackagePage = () => {
               <TabsTrigger value="contributors">
                 Authors ({currentDisplayVersion?.authors?.length || 0})
               </TabsTrigger>
-              <TabsTrigger value="audits">
-                Audits ({stats.total_audits})
-              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="readme">
               <Card>
-                <CardContent className="prose prose-sm max-w-none p-6 dark:prose-invert">
+                <CardContent className="min-w-full prose prose-sm p-6 dark:prose-invert">
                   {readmeLoading ? (
                     <div className="space-y-2">
                       <Skeleton className="h-4 w-full" />
@@ -380,7 +259,7 @@ const PackagePage = () => {
                     </div>
                   ) : (
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {readmeContent}
+                      {readmeContent || "# No README available"}
                     </ReactMarkdown>
                   )}
                 </CardContent>
@@ -389,7 +268,7 @@ const PackagePage = () => {
 
             <TabsContent value="changelog">
               <Card>
-                <CardContent className="prose prose-sm max-w-none p-6 dark:prose-invert">
+                <CardContent className="min-w-full prose prose-sm p-6 dark:prose-invert">
                   {changelogLoading ? (
                     <div className="space-y-2">
                       <Skeleton className="h-4 w-full" />
@@ -398,7 +277,7 @@ const PackagePage = () => {
                     </div>
                   ) : (
                     <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {changelogContent}
+                      {changelogContent || "# No changelog available"}
                     </ReactMarkdown>
                   )}
                 </CardContent>
@@ -407,9 +286,9 @@ const PackagePage = () => {
 
             <TabsContent value="versions" className="space-y-2">
               {Object.values(versions).map((v: PackageVersion) => (
-                <Card>
+                <Card key={v.version}>
                   <CardContent className="space-y-4">
-                    <div key={v.version} className={v.yanked ? "opacity-60 pointer-none" : ""}>
+                    <div className={v.yanked ? "opacity-60 pointer-none" : ""}>
                       <Link href={`/packages/${packageId}@${v.version}`} className="space-y-2">
                         <div className="flex items-start justify-between">
                           <div className="flex flex-wrap items-center gap-2">
@@ -433,7 +312,7 @@ const PackagePage = () => {
                             )}
                           </div>
                           <div className="text-sm text-muted-foreground">
-                            {format(v.created_at, "MMM d, yyyy")}
+                            {format(new Date(v.created_at), "MMM d, yyyy")}
                           </div>
                         </div>
 
@@ -496,9 +375,9 @@ const PackagePage = () => {
 
             <TabsContent value="contributors" className="space-y-2">
               {currentDisplayVersion?.authors?.map((author, index) => (
-                <Card>
+                <Card key={index}>
                   <CardContent className="space-y-2">
-                    <div key={index}>
+                    <div>
                       <div className="flex items-center gap-4">
                         <div className="flex-1">
                           <div className="flex items-center gap-2">
@@ -528,53 +407,6 @@ const PackagePage = () => {
                   <CardContent className="space-y-4">
                     <div className="text-center text-muted-foreground py-12">
                       No authors found for this version.
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-            </TabsContent>
-
-            <TabsContent value="audits" className="space-y-4">
-              {audits.map((audit: Audit) => (
-                <Card>
-                  <CardContent className="space-y-4">
-                    <div key={audit.id} className="hover:bg-accent">
-                      <div className="flex items-start gap-3">
-                        {getAuditIcon(audit.action)}
-                        <div className="flex-1">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="font-semibold">
-                              {formatAuditAction(audit.action)}
-                            </span>
-                            <Badge variant="outline">
-                              v{audit.package_version_id}
-                            </Badge>
-                          </div>
-                          <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
-                            {audit.user && (
-                              <span>
-                                by{" "}
-                                <Link
-                                  href={`/users/${audit.user.id}`}
-                                  className="text-primary hover:underline"
-                                >
-                                  {audit.user.display_name}
-                                </Link>
-                              </span>
-                            )}
-                            <span>{format(audit.timestamp, "MMM d, yyyy")}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {(audits?.length === 0) && (
-                <Card>
-                  <CardContent className="space-y-4">
-                    <div className="text-center text-muted-foreground py-12">
-                      No audits found.
                     </div>
                   </CardContent>
                 </Card>
@@ -624,7 +456,7 @@ const PackagePage = () => {
                     <Calendar className="h-4 w-4" />
                     <span>Updated</span>
                   </span>
-                  <span>{format(pkg.updated_at, "MMM d, yyyy")}</span>
+                  <span>{format(new Date(pkg.updated_at), "MMM d, yyyy")}</span>
                 </div>
 
                 <div className="flex justify-between">
@@ -701,13 +533,13 @@ const PackagePage = () => {
               <div className="flex flex-col gap-3">
                 <span className="text-lg font-bold">Owner(s)</span>
                 <div className="flex flex-col gap-1">
-                  {owners.map((o: PackageOwner) => (
+                  {owners.map((o: User) => (
                     <Link
-                      key={o.user.id}
-                      href={`/users/${o.user.id}`}
+                      key={o.id}
+                      href={`/users/${o.id}`}
                       className="text-primary hover:underline"
                     >
-                      {o.user.display_name}
+                      {o.display_name}
                     </Link>
                   ))}
                 </div>
@@ -717,7 +549,7 @@ const PackagePage = () => {
             <Separator />
 
             <Button variant="destructive" className="w-full py-6 text-md" asChild>
-              <Link href={`/report/${pkg.id}`}>Report Package</Link>
+              <Link href={`/support?package=${pkg.id}&inquire=violation`}>Report Package</Link>
             </Button>
           </CardContent>
         </Card>

@@ -58,9 +58,9 @@ const Pagination = ({ page, totalPages, onPageChange }: PaginationProps) => {
             return (
               <PaginationItem key={i}>
                 <PaginationLink
+                  className="cursor-pointer"
                   isActive={pageNumber === page}
                   onClick={() => onPageChange(pageNumber)}
-                  className="cursor-pointer"
                 >
                   {pageNumber}
                 </PaginationLink>

@@ -3,9 +3,8 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Kbd } from "@/components/ui/kbd";
-import SearchInput from "@/components/search";
-import { Skeleton } from "@/components/ui/skeleton";
-import StatsSection from "@/components/stats-section";
+import SearchInput, { SearchInputSkeleton } from "@/components/search";
+import StatsSection, { StatsSectionSkeleton } from "@/components/stats-section";
 
 const Home = () => {
   return (
@@ -13,7 +12,7 @@ const Home = () => {
       <div
         className={cn(
           "absolute inset-0",
-          "[background-size:40px_40px]",
+          "[background-size:50px_40px]",
           "[background-image:linear-gradient(to_right,var(--color-foreground)_1px,transparent_1px),linear-gradient(to_bottom,var(--color-foreground)_1px,transparent_1px)]"
         )}
       />
@@ -24,12 +23,12 @@ const Home = () => {
           <h1 className="text-5xl md:text-6xl font-semibold text-foreground">
             MCI Registry
           </h1>
-          <p className="text-muted-foreground md:text-lg tracking-wide">
-            Publish, find, and install all your packages
+          <p className="bg-background text-muted-foreground md:text-lg tracking-wide">
+            Publish, find, and install modules for your MCI systems
           </p>
         </div>
 
-        <Suspense fallback={<Skeleton className="h-16 w-full rounded-md" />}>
+        <Suspense fallback={<SearchInputSkeleton />}>
           <SearchInput large />
         </Suspense>
 
@@ -40,13 +39,7 @@ const Home = () => {
           <span>to quick search</span>
         </div>
 
-        <Suspense fallback={
-          <div className="z-10 w-full flex items-center justify-center sm:justify-between gap-8 mt-8 px-4">
-            <Skeleton className="h-16 w-1/3 rounded-md" />
-            <Skeleton className="h-16 w-1/3 rounded-md" />
-            <Skeleton className="h-16 w-1/3 rounded-md" />
-          </div>
-        }>
+        <Suspense fallback={<StatsSectionSkeleton />}>
           <StatsSection />
         </Suspense>
       </div>

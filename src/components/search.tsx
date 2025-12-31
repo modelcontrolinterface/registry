@@ -6,6 +6,7 @@ import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const useSearch = () => {
   const router = useRouter();
@@ -27,8 +28,6 @@ const useSearch = () => {
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === "Enter") submit();
   };
-
-
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -52,6 +51,10 @@ interface SearchInputProps {
   large?: boolean;
 }
 
+export const SearchInputSkeleton = () => {
+  return <Skeleton className="h-16 w-full rounded-md" />
+}
+
 const SearchInput = ({ large = false }: SearchInputProps) => {
   const { query, setQuery, inputRef, submit, handleKeyPress } = useSearch();
 
@@ -61,9 +64,9 @@ const SearchInput = ({ large = false }: SearchInputProps) => {
         ref={inputRef}
         value={query}
         onKeyDown={handleKeyPress}
+        placeholder="Search for a package"
         onChange={(e) => setQuery(e.target.value)}
         className="h-full pl-4 border-2 border-primary"
-        placeholder="Search for a package"
       />
       <Button onClick={submit} className="aspect-square h-full">
         <Search />

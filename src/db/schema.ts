@@ -18,33 +18,29 @@ import {
 import { relations, sql } from "drizzle-orm";
 import { authenticatedRole, authUid } from "drizzle-orm/supabase";
 
+export const adminRole = pgRole("package_admin");
+
 export const packageCategoryEnum = pgEnum("package_category", [
+  "hook",
   "server",
   "sandbox",
   "interceptor",
 ]);
 
 export const auditActionEnum = pgEnum("audit_action", [
-  "package_verify",
-  "package_unverify",
-  "package_deprecate",
-  "package_undeprecate",
-  "package_transfer_ownership",
-  "version_yank",
-  "version_unyank",
-  "version_update",
-  "version_publish",
+  "update_package",
+  "update_package_owners",
+  "create_package_version",
+  "update_package_version",
 ]);
-
-export const adminRole = pgRole("package_admin");
 
 export const users = pgTable(
   "users",
   {
-    id: uuid("id").primaryKey(),
+    id: uuid("id").primaryKey().defaultRandom(),
+    avatar_url: text("avatar_url").notNull(),
     email: varchar("email", { length: 150 }).notNull().unique(),
     display_name: varchar("display_name", { length: 100 }).notNull(),
-    avatar_url: text("avatar_url"),
     created_at: timestamp("created_at", { withTimezone: true })
       .notNull()
       .defaultNow(),
@@ -64,7 +60,15 @@ export const users = pgTable(
       for: "update",
       to: authenticatedRole,
       using: sql`${authUid} = ${t.id}`,
-      withCheck: sql`${authUid} = ${t.id}`,
+      withCheck: sql`
+        ${authUid} = ${t.id}
+        AND ${t.created_at} = (SELECT created_at FROM users WHERE id = ${t.id})
+      `,
+    }),
+    pgPolicy("users_delete_own", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`${authUid} = ${t.id}`,
     }),
   ],
 );
@@ -74,18 +78,18 @@ export const packages = pgTable(
   {
     id: varchar("id", { length: 100 }).primaryKey(),
     name: varchar("name", { length: 100 }).notNull().unique(),
+    description: varchar("description", { length: 500 }).notNull(),
     categories: packageCategoryEnum("categories").array().notNull(),
-    primary_owner: uuid("primary_owner")
-      .notNull()
-      .references(() => users.id, { onDelete: "restrict" }),
-    default_version: varchar("default_version", { length: 100 }),
     keywords: text("keywords")
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
     homepage: text("homepage"),
     repository: text("repository"),
-    description: varchar("description", { length: 500 }),
+    default_version: varchar("default_version", { length: 100 }),
+    primary_owner_id: uuid("primary_owner")
+      .notNull()
+      .references(() => users.id, { onDelete: "restrict" }),
     is_verified: boolean("is_verified").notNull().default(false),
     is_deprecated: boolean("is_deprecated").notNull().default(false),
     deprecation_message: varchar("deprecation_message", { length: 500 }),
@@ -98,19 +102,16 @@ export const packages = pgTable(
   },
   (t) => [
     index("packages_name_idx").on(t.name),
-    index("packages_primary_owner_idx").on(t.primary_owner),
-    index("packages_updated_at_idx").on(t.updated_at.desc()),
-    index("packages_categories_gin_idx").using("gin", t.categories),
-    index("packages_keywords_gin_idx").using("gin", t.keywords),
     index("packages_is_verified_idx").on(t.is_verified),
+    index("packages_is_deprecated_idx").on(t.is_deprecated),
+    index("packages_updated_at_idx").on(t.updated_at.desc()),
+    index("packages_keywords_gin_idx").using("gin", t.keywords),
+    index("packages_primary_owner_id_idx").on(t.primary_owner_id),
+    index("packages_categories_gin_idx").using("gin", t.categories),
 
     check(
       "packages_id_format",
       sql`${t.id} ~ '^[a-z](?:[a-z0-9_-]{0,62}[a-z0-9])?$'`,
-    ),
-    check(
-      "packages_name_format",
-      sql`${t.name} ~ '^[a-z](?:[a-z0-9_-]{0,62}[a-z0-9])?$'`,
     ),
     check(
       "packages_keywords_format",
@@ -121,8 +122,16 @@ export const packages = pgTable(
       sql`array_length(${t.keywords}, 1) <= 5`,
     ),
     check(
+      "packages_categories_max_length",
+      sql`array_length(${t.categories}, 1) <= 4`,
+    ),
+    check(
       "packages_deprecation_consistency",
-      sql`(NOT ${t.is_deprecated}) OR (${t.deprecation_message} IS NOT NULL)`,
+      sql`
+        (${t.is_deprecated} IS FALSE AND ${t.deprecation_message} IS NULL)
+        OR
+        (${t.is_deprecated} IS TRUE AND ${t.deprecation_message} IS NOT NULL)
+      `,
     ),
     check(
       "packages_default_version_format",
@@ -137,32 +146,43 @@ export const packages = pgTable(
     pgPolicy("packages_insert_authenticated", {
       for: "insert",
       to: authenticatedRole,
-      withCheck: sql`${authUid} IS NOT NULL AND ${authUid} = ${t.primary_owner}`,
+      withCheck: sql`
+        ${authUid} IS NOT NULL
+        AND ${authUid} = ${t.primary_owner_id}
+      `,
     }),
     pgPolicy("packages_update_owners", {
       for: "update",
       to: authenticatedRole,
       using: sql`
-        ${authUid} = ${t.primary_owner} OR
-        EXISTS (
+        ${authUid} = ${t.primary_owner_id}
+        OR EXISTS (
           SELECT 1 FROM package_owners po
           WHERE po.package_id = ${t.id} AND po.user_id = ${authUid}
         )
       `,
       withCheck: sql`
-        (${authUid} = ${t.primary_owner} OR
-        EXISTS (
-          SELECT 1 FROM package_owners po
-          WHERE po.package_id = ${t.id} AND po.user_id = ${authUid}
-        )) AND
-        (${t.primary_owner} = (SELECT primary_owner FROM packages WHERE id = ${t.id})) AND
-        (${t.is_verified} = (SELECT is_verified FROM packages WHERE id = ${t.id}))
+        (
+           ${authUid} = ${t.primary_owner_id} 
+           OR EXISTS (
+             SELECT 1 FROM package_owners po
+             WHERE po.package_id = ${t.id} AND po.user_id = ${authUid}
+           )
+        )
+        AND (
+          ${t.primary_owner_id} = (SELECT primary_owner FROM packages WHERE id = ${t.id})
+          OR
+          (SELECT primary_owner FROM packages WHERE id = ${t.id}) = ${authUid}
+        )
+        AND ${t.id} = (SELECT id FROM packages WHERE id = ${t.id})
+        AND ${t.created_at} = (SELECT created_at FROM packages WHERE id = ${t.id})
+        AND ${t.is_verified} = (SELECT is_verified FROM packages WHERE id = ${t.id})
       `,
     }),
     pgPolicy("packages_delete_primary_owner", {
       for: "delete",
       to: authenticatedRole,
-      using: sql`${authUid} = ${t.primary_owner}`,
+      using: sql`${authUid} = ${t.primary_owner_id}`,
     }),
     pgPolicy("packages_admin_all", {
       for: "all",
@@ -184,24 +204,20 @@ export const package_versions = pgTable(
     publisher_id: uuid("publisher_id")
       .notNull()
       .references(() => users.id, { onDelete: "restrict" }),
-    authors: jsonb("authors")
-      .$type<string[]>()
+    authors: text("authors")
+      .array()
       .notNull()
-      .default(sql`'[]'::jsonb`),
+      .default(sql`ARRAY[]::text[]`),
     license: varchar("license", { length: 100 }),
     license_file: text("license_file"),
-    yanked: boolean("yanked").notNull().default(false),
-    yanked_at: timestamp("yanked_at", { withTimezone: true }),
-    yanked_message: varchar("yanked_message", { length: 200 }),
-    yanked_by_user_id: uuid("yanked_by_user_id").references(() => users.id, {
-      onDelete: "set null",
-    }),
-    readme: text("readme").notNull(),
+    is_yanked: boolean("is_yanked").notNull().default(false),
+    yank_message: varchar("yank_message", { length: 200 }),
+    readme: text("readme"),
     changelog: text("changelog"),
     tarball: text("tarball").notNull(),
-    abi_version: varchar("abi_version", { length: 50 }).notNull(),
-    digest: varchar("digest", { length: 100 }).notNull(),
     size: bigint("size", { mode: "number" }).notNull(),
+    digest: varchar("digest", { length: 100 }).notNull(),
+    abi_version: varchar("abi_version", { length: 50 }).notNull(),
     downloads: bigint("downloads", { mode: "number" }).notNull().default(0),
     created_at: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -211,34 +227,40 @@ export const package_versions = pgTable(
       .defaultNow(),
   },
   (t) => [
-    index("package_versions_package_id_idx").on(t.package_id),
-    index("package_versions_created_at_idx").on(t.created_at.desc()),
     index("package_versions_version_idx").on(t.version),
-    index("package_versions_yanked_idx").on(t.yanked),
+    index("package_versions_yanked_idx").on(t.is_yanked),
+    index("package_versions_package_id_idx").on(t.package_id),
     index("package_versions_publisher_id_idx").on(t.publisher_id),
+    index("package_versions_created_at_idx").on(t.created_at.desc()),
 
     unique("package_versions_package_version_unique").on(
       t.package_id,
       t.version,
     ),
+
     check(
       "package_versions_version_format",
       sql`${t.version} ~ '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$'`,
     ),
     check(
-      "package_versions_yanked_consistency",
-      sql`
-        (${t.yanked} IS FALSE AND ${t.yanked_at} IS NULL AND ${t.yanked_by_user_id} IS NULL) OR 
-        (${t.yanked} IS TRUE AND ${t.yanked_at} IS NOT NULL AND ${t.yanked_by_user_id} IS NOT NULL)
-      `,
+      "package_versions_abi_version_format",
+      sql`${t.abi_version} ~ '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$'`,
     ),
     check(
       "package_versions_license_specified",
       sql`${t.license} IS NOT NULL OR ${t.license_file} IS NOT NULL`,
     ),
     check(
+      "package_versions_yanked_consistency",
+      sql`
+        (${t.is_yanked} IS FALSE AND ${t.yank_message} IS NULL)
+        OR
+        (${t.is_yanked} IS TRUE AND ${t.yank_message} IS NOT NULL)
+      `,
+    ),
+    check(
       "package_versions_authors_format",
-      sql`jsonb_typeof(${t.authors}) = 'array'`,
+      sql`array_to_string(${t.authors}, '') ~ '^([^<(]+?)(?:\\s*<([^>]+)>)?(?:\\s*\\(([^)]+)\\))?$'`,
     ),
     check("package_versions_size_positive", sql`${t.size} > 0`),
     check("package_versions_downloads_non_negative", sql`${t.downloads} >= 0`),
@@ -252,50 +274,44 @@ export const package_versions = pgTable(
       for: "insert",
       to: authenticatedRole,
       withCheck: sql`
-        EXISTS (
-          SELECT 1 FROM packages p
-          WHERE p.id = ${t.package_id} AND
-            (p.primary_owner = ${authUid} OR
-              EXISTS (
-                SELECT 1 FROM package_owners po
-                WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
-              )
-            )
-        )
+        ${authUid} = ${t.publisher_id} 
+        AND EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id} AND (
+          p.primary_owner = ${authUid} OR EXISTS (
+            SELECT 1 FROM package_owners po
+            WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
+          )
+        ))
       `,
     }),
     pgPolicy("package_versions_update_owner", {
       for: "update",
       to: authenticatedRole,
       using: sql`
-        EXISTS (
-          SELECT 1 FROM packages p
-          WHERE p.id = ${t.package_id} AND
-            (p.primary_owner = ${authUid} OR
-              EXISTS (
-                SELECT 1 FROM package_owners po
-                WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
-              )
-            )
+        EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
+          AND (p.primary_owner = ${authUid} OR EXISTS (
+            SELECT 1 FROM package_owners po
+            WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
+          ))
         )
       `,
       withCheck: sql`
-        EXISTS (
-          SELECT 1 FROM packages p
-          WHERE p.id = ${t.package_id} AND
-            (p.primary_owner = ${authUid} OR
-              EXISTS (
-                SELECT 1 FROM package_owners po
-                WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
-              )
-            )
-        ) AND
-        ${t.package_id} = (SELECT package_id FROM package_versions WHERE id = ${t.id}) AND
-        ${t.version} = (SELECT version FROM package_versions WHERE id = ${t.id}) AND
-        ${t.size} = (SELECT size FROM package_versions WHERE id = ${t.id}) AND
-        ${t.publisher_id} = (SELECT publisher_id FROM package_versions WHERE id = ${t.id}) AND
-        ${t.digest} = (SELECT digest FROM package_versions WHERE id = ${t.id}) AND
-        ${t.tarball} = (SELECT tarball FROM package_versions WHERE id = ${t.id})
+        EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
+          AND (p.primary_owner = ${authUid} OR EXISTS (
+              SELECT 1 FROM package_owners po
+              WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
+          ))
+        )
+        AND ${t.id} = (SELECT id FROM package_versions WHERE id = ${t.id})
+        AND ${t.size} = (SELECT size FROM package_versions WHERE id = ${t.id})
+        AND ${t.digest} = (SELECT digest FROM package_versions WHERE id = ${t.id})
+        AND ${t.version} = (SELECT version FROM package_versions WHERE id = ${t.id})
+        AND ${t.license} = (SELECT license FROM package_versions WHERE id = ${t.id})
+        AND ${t.tarball} = (SELECT tarball FROM package_versions WHERE id = ${t.id})
+        AND ${t.downloads} = (SELECT downloads FROM package_versions WHERE id = ${t.id})
+        AND ${t.created_at} = (SELECT created_at FROM package_versions WHERE id = ${t.id})
+        AND ${t.package_id} = (SELECT package_id FROM package_versions WHERE id = ${t.id})
+        AND ${t.abi_version} = (SELECT abi_version FROM package_versions WHERE id = ${t.id})
+        AND ${t.publisher_id} = (SELECT publisher_id FROM package_versions WHERE id = ${t.id})
       `,
     }),
     pgPolicy("package_versions_admin_all", {
@@ -331,36 +347,23 @@ export const package_owners = pgTable(
       to: "public",
       using: sql`true`,
     }),
-    pgPolicy("package_owners_insert", {
+    pgPolicy("package_owners_insert_primary_owner", {
       for: "insert",
       to: authenticatedRole,
       withCheck: sql`
-        EXISTS (
-          SELECT 1 FROM packages p
-          WHERE p.id = ${t.package_id} AND
-            (p.primary_owner = ${authUid} OR
-              EXISTS (
-                SELECT 1 FROM package_owners po
-                WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
-              )
-            )
+        EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
+          AND p.primary_owner = ${authUid}
         )
       `,
     }),
-    pgPolicy("package_owners_delete", {
+    pgPolicy("package_owners_delete_authorized", {
       for: "delete",
       to: authenticatedRole,
       using: sql`
-        EXISTS (
-          SELECT 1 FROM packages p
-          WHERE p.id = ${t.package_id} AND
-            (p.primary_owner = ${authUid} OR
-              EXISTS (
-                SELECT 1 FROM package_owners po
-                WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
-              )
-            )
+        EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
+          AND p.primary_owner = ${authUid}
         )
+        OR ${t.user_id} = ${authUid}
       `,
     }),
     pgPolicy("package_owners_admin_all", {
@@ -390,27 +393,23 @@ export const audits = pgTable(
       () => package_versions.id,
       { onDelete: "set null" },
     ),
-    version_number: varchar("version_number", { length: 100 }),
-    metadata: jsonb("metadata"),
+    field_name: varchar("field_name", { length: 100 }),
+    previous_value: jsonb("previous_value"),
+    current_value: jsonb("current_value"),
     timestamp: timestamp("timestamp", { withTimezone: true })
       .notNull()
       .defaultNow(),
   },
   (t) => [
-    index("audits_timestamp_idx").on(t.timestamp.desc()),
+    index("audits_action_idx").on(t.action),
     index("audits_user_id_idx").on(t.user_id),
     index("audits_package_id_idx").on(t.package_id),
-    index("audits_action_idx").on(t.action),
+    index("audits_timestamp_idx").on(t.timestamp.desc()),
 
     pgPolicy("audits_select_public", {
       for: "select",
       to: "public",
       using: sql`true`,
-    }),
-    pgPolicy("audits_insert_authenticated", {
-      for: "insert",
-      to: authenticatedRole,
-      withCheck: sql`${authUid} = ${t.user_id}`,
     }),
     pgPolicy("audits_admin_all", {
       for: "all",
@@ -426,17 +425,16 @@ export const usersRelations = relations(users, ({ many }) => ({
   owned_packages: many(packages),
   co_owned_packages: many(package_owners),
   published_versions: many(package_versions, { relationName: "publisher" }),
-  yanked_versions: many(package_versions, { relationName: "yanker" }),
 }));
 
 export const packagesRelations = relations(packages, ({ many, one }) => ({
   audits: many(audits),
   owners: many(package_owners),
   versions: many(package_versions),
-  primaryOwner: one(users, {
-    fields: [packages.primary_owner],
+  primary_owner: one(users, {
+    fields: [packages.primary_owner_id],
     references: [users.id],
-    relationName: "primaryOwner",
+    relationName: "primary_owner",
   }),
 }));
 
@@ -462,11 +460,6 @@ export const package_versionsRelations = relations(
       fields: [package_versions.publisher_id],
       references: [users.id],
       relationName: "publisher",
-    }),
-    yankedBy: one(users, {
-      fields: [package_versions.yanked_by_user_id],
-      references: [users.id],
-      relationName: "yanker",
     }),
   }),
 );

@@ -1,9 +1,10 @@
+import { formatDownloads } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns"
 
-import Link from "next/link"
-import { Badge } from "@/components/ui/badge"
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 import PackageBadge from "@/components/package-badge"
-import { Download, Calendar, Server, BadgeCheck } from "lucide-react"
+import { Download, Calendar, Server, BadgeCheck, OctagonAlert } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 export interface PackageCardProps {
@@ -18,6 +19,27 @@ export interface PackageCardProps {
   default_version: string | null
 }
 
+export const PackageCardSkeleton = () => (
+  <div className="flex flex-col space-y-3 border rounded-md p-4">
+    <div className="flex items-center space-x-4">
+      <Skeleton className="h-12 w-12 rounded-full" />
+      <div className="space-y-2 flex-1">
+        <Skeleton className="h-4 w-3/4" />
+        <Skeleton className="h-4 w-1/2" />
+      </div>
+    </div>
+    <div className="space-y-2 pt-2">
+      <Skeleton className="h-4 w-full" />
+      <Skeleton className="h-4 w-[90%]" />
+      <Skeleton className="h-4 w-[70%]" />
+    </div>
+    <div className="flex justify-between pt-4">
+      <Skeleton className="h-5 w-[100px]" />
+      <Skeleton className="h-5 w-[80px]" />
+    </div>
+  </div>
+);
+
 const PackageCard = ({
   id,
   name,
@@ -29,12 +51,6 @@ const PackageCard = ({
   is_deprecated,
   default_version,
 }: PackageCardProps) => {
-  const formatDownloads = (count: number) => {
-    if (count >= 1000) return `${(count / 1000).toFixed(1)}K`
-    if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`
-    return count.toString()
-  }
-
   return (
     <Link href={`/packages/${id}`} className="block group">
       <Card className="w-full h-full flex flex-col justify-between transition-all duration-200 hover:shadow-lg hover:border-primary">
@@ -51,12 +67,12 @@ const PackageCard = ({
                   {name}
                 </CardTitle>
                 {is_verified && <BadgeCheck className="w-4 h-4 text-blue-500" />}
+                {is_deprecated && <OctagonAlert className="w-4 h-4 text-destructive" />}
               </div>
               <div className="flex gap-2">
                 {categories.map((category) => (
-                  <PackageBadge key={category} type={category} />
+                  <PackageBadge key={category} category={category} />
                 ))}
-                {is_deprecated && <Badge variant="destructive">Deprecated</Badge>}
               </div>
             </div>
           </div>
@@ -72,7 +88,7 @@ const PackageCard = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2">
             <Calendar className="w-3.5 h-3.5" />
             <span>{formatDistanceToNowStrict(updated_at)}</span>
           </div>

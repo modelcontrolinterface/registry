@@ -1,10 +1,17 @@
 import { z } from "zod";
 import { safeNumber } from "@/lib/utils";
 import { NextResponse } from "next/server";
-import { packages, users, package_versions, package_owners } from "@/db/schema";
-import { createDrizzleSupabaseClient } from "@/lib/drizzle";
-import { and, asc, desc, eq, ilike, or, sql, Column, SQL } from "drizzle-orm";
 import { PgColumn } from "drizzle-orm/pg-core";
+import { packageNameRegex } from "@/lib/regex";
+import { createDrizzleSupabaseClient } from "@/lib/drizzle";
+import { packages, users, package_versions } from "@/db/schema";
+import { and, asc, desc, eq, ilike, or, sql, SQL } from "drizzle-orm";
+import {
+  PackageSort,
+  PackageVerified,
+  PackageCategory,
+  PackageDeprecated,
+} from "@/lib/enums";
 
 export type GetPackagesResult = Awaited<ReturnType<typeof getPackages>>;
 
@@ -12,18 +19,18 @@ export interface Pagination {
   page: number;
   limit: number;
   total: number;
-  totalPages: number;
+  total_pages: number;
   hasNextPage: boolean;
   hasPrevPage: boolean;
 }
 
 export interface Filters {
-  sort: string;
-  verified: string;
-  type: string | null;
+  sort: PackageSort;
   query: string | null;
   owner: string | null;
-  contributor: string | null;
+  verified: PackageVerified;
+  deprecated: PackageDeprecated;
+  category: PackageCategory | null;
 }
 
 export interface GetPackagesApiResponse {
@@ -34,45 +41,46 @@ export interface GetPackagesApiResponse {
 
 const getPackages = async (
   q: string | null,
-  sort: string,
+  sort: PackageSort,
   page: number,
   limit: number,
-  verified: string,
-  type: string | null,
-  owner: string | null,
-  contributor: string | null,
+  ownerId: string | null,
+  verified: PackageVerified,
+  deprecated: PackageDeprecated,
+  category: PackageCategory | null,
 ) => {
   const { rls } = await createDrizzleSupabaseClient();
   const qTerm = q?.trim();
-  const ownerTerm = owner?.trim();
-  const contributorTerm = contributor?.trim();
   const where = and(
     qTerm
       ? or(
-          ilike(packages.id, `%${qTerm}%`),
           ilike(packages.name, `%${qTerm}%`),
           ilike(packages.description, `%${qTerm}%`),
           sql`ARRAY_TO_STRING(keywords, ' ') ILIKE ${`%${qTerm}%`}`,
         )
       : undefined,
-    verified === "verified"
+    verified === PackageVerified.Verified
       ? eq(packages.is_verified, true)
-      : verified === "unverified"
+      : verified === PackageVerified.Unverified
         ? eq(packages.is_verified, false)
         : undefined,
-    type &&
-      type !== "all" &&
-      ["server", "sandbox", "interceptor"].includes(type)
-      ? sql`${packages.categories} @> ARRAY[${type}]::package_category[]`
+    deprecated === PackageDeprecated.Deprecated
+      ? eq(packages.is_deprecated, true)
+      : deprecated === PackageDeprecated.NotDeprecated
+        ? eq(packages.is_deprecated, false)
+        : undefined,
+    category && category !== PackageCategory.All
+      ? sql`${packages.categories} @> ARRAY[${category}]::package_category[]`
       : undefined,
-    ownerTerm ? or(ilike(users.display_name, ownerTerm)) : undefined,
-    contributorTerm
-      ? sql`EXISTS (
-          SELECT 1
-          FROM package_versions pv
-          JOIN users u ON pv.publisher_id = u.id
-          WHERE pv.package_id = ${packages.id} AND u.display_name ILIKE ${`%${contributorTerm}%`}
-        )`
+    ownerId
+      ? or(
+          eq(packages.primary_owner_id, ownerId),
+          sql`EXISTS (
+            SELECT 1
+            FROM package_owners po
+            WHERE po.package_id = ${packages.id} AND po.user_id = ${ownerId}
+          )`,
+        )
       : undefined,
   );
   const queryBuilder = rls((db) => {
@@ -86,38 +94,14 @@ const getPackages = async (
       .from(package_versions)
       .groupBy(package_versions.package_id)
       .as("download_counts");
-
-    const secondaryOwners = db
-      .select({
-        package_id: package_owners.package_id,
-        owner_names: sql<string[]>`array_agg(${users.display_name})`.as(
-          "owner_names",
-        ),
-      })
-      .from(package_owners)
-      .leftJoin(users, eq(package_owners.user_id, users.id))
-      .groupBy(package_owners.package_id)
-      .as("secondary_owners");
-
-    const contributors = db
-      .select({
-        package_id: package_versions.package_id,
-        contributor_names: sql<
-          string[]
-        >`array_agg(distinct ${users.display_name})`.as("contributor_names"),
-      })
-      .from(package_versions)
-      .leftJoin(users, eq(package_versions.publisher_id, users.id))
-      .groupBy(package_versions.package_id)
-      .as("contributors");
-
     const baseQuery = db
       .select({
         id: packages.id,
         name: packages.name,
         description: packages.description,
-        default_version: packages.default_version,
         categories: packages.categories,
+        keywords: packages.keywords,
+        default_version: packages.default_version,
         is_verified: packages.is_verified,
         is_deprecated: packages.is_deprecated,
         downloads: sql<number>`coalesce(${downloadCounts.downloads}, 0)`.as(
@@ -125,47 +109,34 @@ const getPackages = async (
         ),
         updated_at: packages.updated_at,
         createdAt: packages.created_at,
-        keywords: packages.keywords,
-        owners: sql<
-          string[]
-        >`array_remove(array_cat(ARRAY[${users.display_name}], ${secondaryOwners.owner_names}), NULL)`.as(
-          "owners",
-        ),
-        contributors: sql<
-          string[]
-        >`coalesce(${contributors.contributor_names}, ARRAY[]::text[])`.as(
-          "contributors",
-        ),
       })
       .from(packages)
-      .leftJoin(users, eq(packages.primary_owner, users.id))
+      .leftJoin(users, eq(packages.primary_owner_id, users.id))
       .leftJoin(downloadCounts, eq(packages.id, downloadCounts.package_id))
-      .leftJoin(secondaryOwners, eq(packages.id, secondaryOwners.package_id))
-      .leftJoin(contributors, eq(packages.id, contributors.package_id))
       .where(where);
 
     let orderByClause: (PgColumn | SQL)[];
 
     switch (sort) {
-      case "downloads":
+      case PackageSort.Downloads:
         orderByClause = [desc(sql`downloads`)];
         break;
-      case "newest":
+      case PackageSort.Newest:
         orderByClause = [desc(packages.created_at)];
         break;
-      case "oldest":
+      case PackageSort.Oldest:
         orderByClause = [asc(packages.created_at)];
         break;
-      case "name-asc":
+      case PackageSort.NameAsc:
         orderByClause = [asc(packages.name)];
         break;
-      case "name-desc":
+      case PackageSort.NameDesc:
         orderByClause = [desc(packages.name)];
         break;
-      case "updated":
+      case PackageSort.Updated:
         orderByClause = [desc(packages.updated_at)];
         break;
-      case "relevance":
+      case PackageSort.Relevance:
       default:
         orderByClause = [desc(packages.is_verified), desc(packages.updated_at)];
         break;
@@ -182,7 +153,7 @@ const getPackages = async (
       db
         .select({ count: sql<number>`count(*)` })
         .from(packages)
-        .leftJoin(users, eq(packages.primary_owner, users.id))
+        .leftJoin(users, eq(packages.primary_owner_id, users.id))
         .where(where),
     ),
     queryBuilder,
@@ -199,25 +170,44 @@ export const GET = async (request: Request) => {
     const { searchParams } = new URL(request.url);
 
     const q = searchParams.get("q");
-    const type = searchParams.get("type");
-    const owner = searchParams.get("owner");
+    const ownerId = searchParams.get("owner");
     const page = searchParams.get("page") || "1";
+    const category = searchParams.get("category");
     const limit = searchParams.get("limit") || "20";
     const pageNum = Math.max(1, safeNumber(page, 1));
-    const contributor = searchParams.get("contributor");
-    const sort = searchParams.get("sort") || "relevance";
-    const verified = searchParams.get("verified") || "all";
+    const sort = searchParams.get("sort") || PackageSort.Relevance;
     const limitNum = Math.min(100, Math.max(1, safeNumber(limit, 20)));
+    const verified = searchParams.get("verified") || PackageVerified.All;
+    const deprecated = searchParams.get("deprecated") || PackageDeprecated.All;
+
+    const sortValue = Object.values(PackageSort).includes(sort as PackageSort)
+      ? (sort as PackageSort)
+      : PackageSort.Relevance;
+    const verifiedValue = Object.values(PackageVerified).includes(
+      verified as PackageVerified,
+    )
+      ? (verified as PackageVerified)
+      : PackageVerified.All;
+    const deprecatedValue = Object.values(PackageDeprecated).includes(
+      deprecated as PackageDeprecated,
+    )
+      ? (deprecated as PackageDeprecated)
+      : PackageDeprecated.All;
+    const categoryValue =
+      category &&
+      Object.values(PackageCategory).includes(category as PackageCategory)
+        ? (category as PackageCategory)
+        : null;
 
     const { packages, total } = await getPackages(
       q,
-      sort,
+      sortValue,
       pageNum,
       limitNum,
-      verified,
-      type,
-      owner,
-      contributor,
+      ownerId,
+      verifiedValue,
+      deprecatedValue,
+      categoryValue,
     );
 
     const totalPages = Math.max(1, Math.ceil(total / limitNum));
@@ -227,21 +217,21 @@ export const GET = async (request: Request) => {
     return NextResponse.json(
       {
         packages,
+        filters: {
+          query: q || null,
+          sort: sortValue,
+          verified: verifiedValue,
+          deprecated: deprecatedValue,
+          category: categoryValue,
+          owner: ownerId || null,
+        },
         pagination: {
           page: pageNum,
           limit: limitNum,
           total,
-          totalPages,
-          hasNextPage,
-          hasPrevPage,
-        },
-        filters: {
-          query: q || null,
-          sort,
-          verified,
-          type: type ?? "all",
-          owner: owner || null,
-          contributor: contributor || null,
+          total_pages: totalPages,
+          has_next_page: hasNextPage,
+          has_prev_page: hasPrevPage,
         },
       },
       { status: 200 },
@@ -254,16 +244,37 @@ export const GET = async (request: Request) => {
   }
 };
 
-const packageCategoryEnum = z.enum(["server", "sandbox", "interceptor"]);
+const packageCategoryEnum = z.enum([
+  "hook",
+  "server",
+  "sandbox",
+  "interceptor",
+]);
 
 const createPackageSchema = z.object({
-  id: z.string().min(1, "Package ID is required"),
-  name: z.string().min(1, "Package name is required"),
-  categories: z.array(packageCategoryEnum).min(1, "At least one category is required"),
-  description: z.string().optional(),
-  homepage: z.string().url("Homepage must be a valid URL").optional(),
-  repository: z.string().url("Repository must be a valid URL").optional(),
-  keywords: z.array(z.string()).optional(),
+  id: z
+    .string()
+    .min(3, "Package ID must be at least 3 characters long")
+    .max(64, "Package ID must be at most 64 characters long")
+    .regex(packageNameRegex, "Invalid package ID format"),
+  name: z
+    .string()
+    .min(3, "Package name must be at least 3 characters long")
+    .max(64, "Package name must be at most 64 characters long"),
+  categories: z
+    .array(packageCategoryEnum)
+    .min(1, "At least one category is required")
+    .max(4, "You can select up to 4 categories"),
+  description: z
+    .string()
+    .max(500, "Description must be at most 500 characters long"),
+  homepage: z.url("Homepage must be a valid URL").optional(),
+  repository: z.url("Repository must be a valid URL").optional(),
+  keywords: z
+    .array(
+      z.string().max(64, "Each keyword must be at most 64 characters long"),
+    )
+    .max(5, "You can have up to 5 keywords"),
 });
 
 export const POST = async (request: Request) => {
@@ -294,7 +305,6 @@ export const POST = async (request: Request) => {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    // Check if package ID already exists
     const existingPackage = await rls((db) =>
       db.query.packages.findFirst({
         where: eq(packages.id, id),
@@ -314,12 +324,12 @@ export const POST = async (request: Request) => {
         .values({
           id,
           name,
-          categories,
-          description,
-          homepage,
-          repository,
           keywords,
-          primary_owner: userData.user.id,
+          categories,
+          description: description,
+          homepage: homepage ?? null,
+          repository: repository ?? null,
+          primary_owner_id: userData.user.id,
         })
         .returning(),
     );

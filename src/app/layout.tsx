@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   MCIR is a registry of packages that extend the functionality of the model
   control interface (MCI)
   `,
-
 };
 
 const RootLayout = async ({ children }: { children: React.ReactNode; }) => {

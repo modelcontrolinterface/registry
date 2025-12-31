@@ -4,9 +4,12 @@ import { User } from "@supabase/supabase-js"
 import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
 import { Suspense, useEffect, useState } from "react"
+import useSWR, { useSWRConfig } from "swr"
+import { fetcher } from "@/lib/fetcher"
 
 import Link from "next/link"
 import Logo from "@/components/logo"
+import { Github } from "lucide-react"
 import SearchInput from "@/components/search"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
@@ -28,41 +31,32 @@ interface UserProfile {
 const Navbar = () => {
   const pathname = usePathname()
   const supabase = createClient()
+  const { mutate } = useSWRConfig()
 
-  const [loading, setLoading] = useState(true)
   const [user, setUser] = useState<User | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null)
+  const [loadingUser, setLoadingUser] = useState(true)
 
   useEffect(() => {
     const loadUser = async () => {
-      setLoading(true)
+      setLoadingUser(true)
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
-
-        if (error || !user) {
-          setUser(null)
-          setUserProfile(null)
-          return
-        }
-
-        setUser(user)
-
-        const response = await fetch(`/api/v1/users/${user.id}`)
-        if (response.ok) {
-          const data = await response.json()
-          setUserProfile(data.user)
-        }
+        const { data: { user: authUser } } = await supabase.auth.getUser()
+        setUser(authUser)
       } catch (error) {
         console.error("Error loading user:", error)
         setUser(null)
-        setUserProfile(null)
       } finally {
-        setLoading(false)
+        setLoadingUser(false)
       }
     }
 
     loadUser()
   }, [supabase.auth])
+
+  const { data: userProfileData, isLoading: isLoadingProfile } = useSWR(user ? `/api/v1/users/${user.id}` : null, fetcher)
+  const userProfile: UserProfile | undefined = userProfileData?.user
+
+  const loading = loadingUser || (!!user && isLoadingProfile)
 
   const handleSignInWithGithub = async () => {
     await supabase.auth.signInWithOAuth({
@@ -74,9 +68,12 @@ const Navbar = () => {
   }
 
   const handleSignOut = async () => {
+    const key = user ? `/api/v1/users/${user.id}` : null
     await supabase.auth.signOut()
     setUser(null)
-    setUserProfile(null)
+    if (key) {
+      mutate(key, undefined, false)
+    }
   }
 
   return (
@@ -99,7 +96,8 @@ const Navbar = () => {
             <Skeleton className="h-10 w-10 rounded-full" />
           ) : !user || !userProfile ? (
             <Button onClick={handleSignInWithGithub} variant="outline">
-              Sign in with GitHub
+              <Github />
+              Signin with github
             </Button>
           ) : (
             <>

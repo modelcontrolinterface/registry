@@ -1,108 +1,89 @@
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import useSWR from "swr";
 import { GetPackagesApiResponse } from "@/app/api/v1/packages/route";
+import {
+  PackageSort,
+  PackageVerified,
+  PackageCategory,
+  PackageDeprecated,
+} from "@/lib/enums";
+import { fetcher } from "@/lib/fetcher";
 
-export const useSearch = () => {
+interface UseSearchProps {
+  ownerId?: string;
+}
+
+export const useSearch = ({ ownerId }: UseSearchProps = {}) => {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const initialQuery = searchParams.get("q") || "";
+  const query = searchParams.get("q") || "";
   const initialPage = Number(searchParams.get("page")) || 1;
-  const initialSort = searchParams.get("sort") || "relevance";
-  const initialVerified = searchParams.get("verified") || "all";
-  const initialCategories = searchParams.get("categories") || "all";
+  const initialSort = searchParams.get("sort") || PackageSort.Relevance;
+  const initialVerified = searchParams.get("verified") || PackageVerified.All;
+  const initialCategory = searchParams.get("category") || PackageCategory.All;
+  const initialDeprecated =
+    searchParams.get("deprecated") || PackageDeprecated.All;
 
-  const [query] = useState(initialQuery);
   const [page, setPage] = useState<number>(initialPage);
-  const [sort, setSort] = useState<string>(initialSort);
-  const [verified, setVerified] = useState<string>(initialVerified);
-  const [categories, setCategories] = useState<string>(initialCategories);
-
-  const [loading, setLoading] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
-  const [initialLoad, setInitialLoad] = useState<boolean>(true);
-  const [packages, setPackages] = useState<GetPackagesApiResponse["packages"]>(
-    [],
+  const [sort, setSort] = useState<PackageSort>(initialSort as PackageSort);
+  const [verified, setVerified] = useState<PackageVerified>(
+    initialVerified as PackageVerified,
   );
-  const [pagination, setPagination] = useState<
-    GetPackagesApiResponse["pagination"] | null
-  >(null);
+  const [category, setCategory] = useState<PackageCategory>(
+    initialCategory as PackageCategory,
+  );
+  const [deprecated, setDeprecated] = useState<PackageDeprecated>(
+    initialDeprecated as PackageDeprecated,
+  );
 
   useEffect(() => {
+    if (ownerId) return;
+
     const params = new URLSearchParams();
 
     if (query) params.set("q", query);
-    if (categories !== "all") params.set("categories", categories);
-    if (sort !== "relevance") params.set("sort", sort);
     if (page !== 1) params.set("page", String(page));
-    if (verified !== "all") params.set("verified", verified);
+    if (sort !== PackageSort.Relevance) params.set("sort", sort);
+    if (verified !== PackageVerified.All) params.set("verified", verified);
+    if (category !== PackageCategory.All) params.set("category", category);
+    if (deprecated !== PackageDeprecated.All) params.set("deprecated", deprecated);
 
     router.push(`/search?${params.toString()}`, { scroll: false });
-  }, [categories, page, sort, verified, query, router]);
+  }, [category, page, sort, verified, deprecated, query, router, ownerId]);
 
-  useEffect(() => {
-    const controller = new AbortController();
-    const signal = controller.signal;
+  const params = new URLSearchParams();
+  if (ownerId) params.set("owner", ownerId);
+  if (query) params.set("q", query);
+  if (sort) params.set("sort", sort);
+  if (page) params.set("page", String(page));
+  if (category !== PackageCategory.All) params.set("category", category);
+  if (deprecated !== PackageDeprecated.All) params.set("deprecated", deprecated);
+  params.set("limit", "12");
+  if (verified !== PackageVerified.All) params.set("verified", verified);
+  const url = `/api/v1/packages?${params.toString()}`;
 
-    const fetchData = async () => {
-      setError(null);
-      setLoading(true);
-
-      try {
-        const params = new URLSearchParams();
-
-        if (query) params.set("q", query);
-        if (categories !== "all") params.set("categories", categories);
-        if (sort) params.set("sort", sort);
-        if (page) params.set("page", String(page));
-
-        params.set("limit", "12");
-
-        if (verified !== "all") params.set("verified", verified);
-
-        const url = `/api/v1/packages?${params.toString()}`;
-        const res = await fetch(url, { signal });
-
-        if (!res.ok) {
-          throw new Error(`HTTP ${res.status}`);
-        }
-
-        const json: GetPackagesApiResponse = await res.json();
-
-        const processedPackages = json.packages.map((pkg) => ({
-          ...pkg,
-        }));
-
-        setPackages(processedPackages || []);
-        setPagination(json.pagination || null);
-      } catch (err: unknown) {
-        if (err instanceof Error && err.name === "AbortError") return;
-        setError((err instanceof Error ? err.message : String(err)) || "Failed to fetch");
-        setPackages([]);
-        setPagination(null);
-      } finally {
-        setLoading(false);
-        setInitialLoad(false);
-      }
-    };
-
-    fetchData();
-    return () => controller.abort();
-  }, [query, categories, sort, page, verified]);
+  const { data, error, isLoading } = useSWR<GetPackagesApiResponse>(url, fetcher);
 
   const handleSortChange = (value: string) => {
-    setSort(value);
     setPage(1);
+    setSort(value as PackageSort);
   };
 
   const handleVerifiedChange = (value: string) => {
-    setVerified(value);
     setPage(1);
+    setVerified(value as PackageVerified);
   };
 
-  const handleCategoriesChange = (value: string) => {
-    setCategories(value);
+  const handleCategoryChange = (value: string) => {
     setPage(1);
+    setCategory(value as PackageCategory);
+  };
+
+  const handleDeprecatedChange = (value: string) => {
+    setPage(1);
+    setDeprecated(value as PackageDeprecated);
   };
 
   const handlePageChange = (newPage: number) => {
@@ -110,19 +91,22 @@ export const useSearch = () => {
   };
 
   return {
-    query,
-    categories,
     page,
     sort,
+    query,
+    error: error ? error.message : null,
+    loading: isLoading,
     verified,
-    loading,
-    packages,
-    error,
-    initialLoad,
-    pagination,
+    packages: data?.packages || [],
+    category,
+    deprecated,
+    pagination: data?.pagination || null,
+    initialLoad: isLoading && !data,
     handleSortChange,
-    handleVerifiedChange,
-    handleCategoriesChange,
     handlePageChange,
+    handleVerifiedChange,
+    handleCategoryChange,
+    handleDeprecatedChange,
   };
 };
+

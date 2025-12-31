@@ -1,80 +1,28 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams } from "next/navigation";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 
-import ItemList from "@/components/item-list";
+import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
+import PackageList from "@/components/package-list";
 import { GetUserResult } from "@/app/api/v1/users/[id]/route";
 
 type UserApiResponse = GetUserResult;
 
-import Image from "next/image";
-import { Package } from "@/components/item-list";
-
-interface OwnedDataStructure {
-  packages: Package[];
-  pagination: {
-    total: number;
-    totalPages: number;
-  };
-}
-
-interface UserProfileStructure {
-  id: string;
-  display_name: string;
-  avatar_url: string | null;
-}
-
-type PackagesData = OwnedDataStructure;
-type UserProfile = UserProfileStructure;
-
 const ProfilePage = () => {
   const params = useParams();
   const id = params.id as string;
-  const searchParams = useSearchParams();
 
-  const [loading, setLoading] = useState(true);
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
+  const { data, error, isLoading } = useSWR<UserApiResponse>(
+    id ? `/api/v1/users/${id}` : null,
+    fetcher
+  );
 
-  const [ownedData, setOwnedData] = useState<PackagesData | null>(null);
-  const [ownedSort, setOwnedSort] = useState(searchParams.get("ownedSort") || "recent");
-  const [ownedPage, setOwnedPage] = useState(Number(searchParams.get("ownedPage")) || 1);
+  const userProfile = data?.user;
 
-  useEffect(() => {
-    const loadUserData = async () => {
-      setLoading(true);
-
-      try {
-        const params = new URLSearchParams({
-          ownedSort,
-          ownedLimit: "12",
-          ownedPage: ownedPage.toString(),
-        });
-
-        const res = await fetch(`/api/v1/users/${id}?${params.toString()}`);
-
-        if (!res.ok) {
-          setUserProfile(null);
-          return;
-        }
-
-        const data: UserApiResponse = await res.json();
-
-        setOwnedData(data?.owned || null);
-        setUserProfile(data?.user || null);
-      } catch (error: unknown) {
-        console.error("Error fetching user data:", error);
-        setUserProfile(null);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadUserData();
-  }, [id, ownedSort, ownedPage]);
-
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <div className="flex items-center gap-4 mb-8">
@@ -94,7 +42,7 @@ const ProfilePage = () => {
     );
   }
 
-  if (!userProfile) {
+  if (error || !userProfile) {
     return (
       <div className="container mx-auto px-4 py-32 text-center">
         <h1 className="text-2xl font-bold mb-4">User Not Found</h1>
@@ -109,32 +57,20 @@ const ProfilePage = () => {
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-4 mb-4">
         <Image
-          src={userProfile.avatar_url || "https://i.pravatar.cc/150?img=5"}
-          alt={userProfile.display_name}
           width={64}
           height={64}
+          alt={userProfile.display_name}
           className="w-16 h-16 rounded-full"
+          src={userProfile.avatar_url || "https://i.pravatar.cc/150?img=5"}
         />
         <div>
           <h1 className="text-2xl font-bold">{userProfile.display_name}</h1>
         </div>
       </div>
-
-      <ItemList
-        items={ownedData?.packages || []}
-        sort={ownedSort}
-        loading={loading}
-        onSortChange={(v) => {
-          setOwnedSort(v);
-          setOwnedPage(1);
-        }}
-        page={ownedPage}
-        onPageChange={setOwnedPage}
-        total={ownedData?.pagination.total || 0}
-        totalPages={ownedData?.pagination.totalPages || 1}
-      />
+      <PackageList ownerId={id} />
     </div>
   );
 };
 
 export default ProfilePage;
+
