@@ -10,7 +10,7 @@ async function calculateFileDigest(file: File): Promise<string> {
   const hash = crypto.createHash("sha256");
   const buffer = await file.arrayBuffer();
   hash.update(Buffer.from(buffer));
-  return hash.digest("hex");
+  return `sha256:${hash.digest("hex")}`;
 }
 
 async function uploadFileToStorage(
