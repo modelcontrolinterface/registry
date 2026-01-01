@@ -23,8 +23,8 @@ const getPackage = async (id: string) => {
             license_file: true,
             is_yanked: true,
             yank_message: true,
-            readme: true,
-            changelog: true,
+            readme_url: true,
+            changelog_url: true,
             size: true,
             digest: true,
             tarball: true,
@@ -357,10 +357,6 @@ export const DELETE = async (
         { status: 403 },
       );
     }
-
-    await rls((db) =>
-      db.delete(package_versions).where(eq(package_versions.package_id, id)),
-    );
 
     const deletedPackage = await rls((db) =>
       db.delete(packages).where(eq(packages.id, id)).returning(),

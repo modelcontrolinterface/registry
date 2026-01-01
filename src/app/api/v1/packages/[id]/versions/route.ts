@@ -7,8 +7,8 @@ import { packages, package_versions } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
 async function calculateFileDigest(file: File): Promise<string> {
-  const buffer = await file.arrayBuffer();
   const hash = crypto.createHash("sha256");
+  const buffer = await file.arrayBuffer();
   hash.update(Buffer.from(buffer));
   return hash.digest("hex");
 }
@@ -19,22 +19,20 @@ async function uploadFileToStorage(
   filePath: string,
   file: File,
 ): Promise<string> {
-  const { data, error } = await supabase.storage
+  const { error } = await supabase.storage
     .from(bucketName)
     .upload(filePath, file, {
+      upsert: true,
       cacheControl: "3600",
-      upsert: false,
+      contentType: file.type,
     });
 
   if (error) {
-    throw new Error(`Failed to upload file to storage: ${error.message}`);
+    throw new Error(`Upload failed for ${filePath}: ${error.message}`);
   }
 
-  const { data: publicUrlData } = supabase.storage
-    .from(bucketName)
-    .getPublicUrl(filePath);
-
-  return publicUrlData.publicUrl;
+  const { data } = supabase.storage.from(bucketName).getPublicUrl(filePath);
+  return data.publicUrl;
 }
 
 const MAX_README_SIZE = 512_000;
@@ -42,6 +40,7 @@ const MAX_CHANGELOG_SIZE = 512_000;
 const MAX_TARBALL_SIZE = 52_428_800;
 const MAX_LICENSE_FILE_SIZE = 512_000;
 
+const ALLOWED_PLAINTEXT_MIMES = ["text/plain"];
 const ALLOWED_MARKDOWN_MIMES = ["text/markdown"];
 const ALLOWED_TARBALL_MIMES = ["application/x-tar"];
 
@@ -54,8 +53,8 @@ const createPackageVersionSchema = z.object({
     .array(
       z.object({
         name: z.string().min(1, "Author name is required"),
-        email: z.string().email("Invalid email format").optional(),
-        url: z.string().url("Invalid URL format").optional(),
+        email: z.email("Invalid email format").optional(),
+        url: z.url("Invalid URL format").optional(),
       }),
     )
     .min(1, "Authors is required"),
@@ -68,8 +67,8 @@ const createPackageVersionSchema = z.object({
       `License file size must be less than ${MAX_LICENSE_FILE_SIZE / 1000}KB`,
     )
     .refine(
-      (file) => !file || ALLOWED_MARKDOWN_MIMES.includes(file.type),
-      `License file must be a markdown file (${ALLOWED_MARKDOWN_MIMES.join(", ")})`,
+      (file) => !file || ALLOWED_PLAINTEXT_MIMES.includes(file.type),
+      `License file must be a markdown file (${ALLOWED_PLAINTEXT_MIMES.join(", ")})`,
     ),
   readme: z
     .instanceof(File)
@@ -107,7 +106,6 @@ const createPackageVersionSchema = z.object({
     .string()
     .regex(semanticVersionRegex, "Invalid semantic version format")
     .min(1, "ABI version is required"),
-  // is_yanked and yank_message removed
 });
 
 export const POST = async (
@@ -120,7 +118,6 @@ export const POST = async (
 
     const formData = await request.formData();
 
-    // Extract fields from formData
     const version = formData.get("version") as string;
     const authorsString = formData.get("authors") as string;
     const license = formData.get("license") as string | undefined;
@@ -129,7 +126,6 @@ export const POST = async (
     const changelog_file = formData.get("changelog") as File | undefined;
     const tarball_file = formData.get("tarball") as File;
     const abi_version = formData.get("abi_version") as string;
-    // is_yanked_string and yank_message removed
 
     let parsedAuthors: any[] = [];
     try {
@@ -141,10 +137,9 @@ export const POST = async (
       );
     }
 
-    // Manually validate the extracted fields
     const validation = createPackageVersionSchema.safeParse({
       version,
-      authors: parsedAuthors, // Pass the parsed object
+      authors: parsedAuthors,
       license,
       license_file: license_file_file,
       readme: readme_file,
@@ -180,7 +175,7 @@ export const POST = async (
       db.query.packages.findFirst({
         where: eq(packages.id, package_id),
         with: {
-          primaryOwner: { columns: { id: true } },
+          primary_owner: { columns: { id: true } },
           owners: { with: { user: { columns: { id: true } } } },
         },
       }),
@@ -193,7 +188,8 @@ export const POST = async (
       );
     }
 
-    const isPrimaryOwner = existingPackage.primaryOwner.id === userData.user.id;
+    const isPrimaryOwner =
+      existingPackage.primary_owner.id === userData.user.id;
     const isCoOwner = existingPackage.owners.some(
       (owner) => owner.user.id === userData.user.id,
     );
@@ -224,14 +220,14 @@ export const POST = async (
       );
     }
 
-    // File Uploads and Digest/Size Calculation
     const storagePath = `packages/${package_id}/versions/${validatedVersion}`;
-    let readmeUrl: string | null = null;
-    let changelogUrl: string | null = null;
-    let licenseFileUrl: string | null = null;
+
     let tarballUrl: string;
     let tarballSize: number;
     let tarballDigest: string;
+    let readmeUrl: string | null = null;
+    let changelogUrl: string | null = null;
+    let licenseFileUrl: string | null = null;
 
     if (validatedReadme) {
       readmeUrl = await uploadFileToStorage(
@@ -253,22 +249,35 @@ export const POST = async (
       licenseFileUrl = await uploadFileToStorage(
         supabase,
         "package-files",
-        `${storagePath}/license.md`, // Assuming license files are markdown
+        `${storagePath}/license.md`,
         validatedLicenseFile,
       );
     }
 
-    // Tarball is required
     tarballUrl = await uploadFileToStorage(
       supabase,
       "package-files",
       `${storagePath}/tarball.tar.gz`,
       validatedTarball,
     );
+
     tarballSize = validatedTarball.size;
     tarballDigest = await calculateFileDigest(validatedTarball);
 
-    const is_stable = !validatedVersion.includes("-");
+    function formatAuthorToString(author: {
+      name: string;
+      email?: string;
+      url?: string;
+    }): string {
+      let result = author.name;
+      if (author.email) {
+        result += ` <${author.email}>`;
+      }
+      if (author.url) {
+        result += ` (${author.url})`;
+      }
+      return result;
+    }
 
     const newPackageVersion = await rls((db) =>
       db
@@ -276,10 +285,9 @@ export const POST = async (
         .values({
           package_id,
           version: validatedVersion,
-          is_stable,
           size: tarballSize,
           publisher_id: userData.user.id,
-          authors: validatedAuthors,
+          authors: validatedAuthors.map(formatAuthorToString),
           license: validatedLicense ?? null,
           license_file: licenseFileUrl,
           readme: readmeUrl,
@@ -287,13 +295,10 @@ export const POST = async (
           abi_version: validatedAbiVersion,
           digest: tarballDigest,
           tarball: tarballUrl,
-          // is_yanked: validatedIsYanked, // Removed
-          // yank_message: validatedYankMessage ?? null, // Removed
         })
         .returning(),
     );
 
-    // If this is the first version for the package, set it as default_version
     if (!existingPackage.default_version) {
       await rls((db) =>
         db
@@ -305,7 +310,6 @@ export const POST = async (
 
     return NextResponse.json(newPackageVersion[0], { status: 201 });
   } catch (err: unknown) {
-    console.error("Error creating package version:", err);
     return NextResponse.json(
       { message: "Internal server error", error: String(err) },
       { status: 500 },

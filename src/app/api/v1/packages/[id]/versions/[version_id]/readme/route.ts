@@ -18,16 +18,23 @@ export const GET = async (
           eq(package_versions.version, version_id),
         ),
         columns: {
-          readme: true,
+          readme_url: true,
         },
       }),
     );
 
-    if (!versionData || !versionData.readme) {
+    if (!versionData || !versionData.readme_url) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    return new NextResponse(versionData.readme, {
+    // Fetch content from the URL
+    const response = await fetch(versionData.readme_url);
+    if (!response.ok) {
+      throw new Error(`Failed to fetch readme content from URL: ${response.statusText}`);
+    }
+    const readmeContent = await response.text();
+
+    return new NextResponse(readmeContent, {
       status: 200,
       headers: {
         "Content-Type": "text/plain",
