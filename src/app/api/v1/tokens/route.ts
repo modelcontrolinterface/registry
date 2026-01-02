@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
+import { api_tokens } from "@/db/schema";
 import { NextResponse } from "next/server";
-import { automation_tokens } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 import { generateToken, hashToken } from "@/lib/token-utils";
 
@@ -10,13 +10,30 @@ const createTokenSchema = z.object({
     .string()
     .min(1, "Token name is required")
     .max(100, "Token name must be at most 100 characters"),
+  expires_at: z.iso
+    .date()
+    .optional()
+    .refine((val) => {
+      if (!val) return true;
+
+      const todayStart = new Date();
+      const expirationDate = new Date(val);
+
+      todayStart.setHours(0, 0, 0, 0);
+
+      const tomorrowStart = new Date(todayStart);
+
+      tomorrowStart.setDate(todayStart.getDate() + 1);
+
+      return expirationDate >= tomorrowStart;
+    }, "Expiration date must be at least tomorrow's date"),
 });
 
 export const POST = async (request: Request) => {
   try {
     const { rls, supabase } = await createDrizzleSupabaseClient();
-
     const { data: userData, error: userError } = await supabase.auth.getUser();
+
     if (userError || !userData?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -27,58 +44,53 @@ export const POST = async (request: Request) => {
     if (!validation.success) {
       return NextResponse.json(
         { message: "Invalid request body", errors: validation.error.issues },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { name } = validation.data;
+    const { name, expires_at } = validation.data;
 
-    // Check for duplicate token name
     const existingToken = await rls((db) =>
       db
         .select()
-        .from(automation_tokens)
+        .from(api_tokens)
         .where(
           and(
-            eq(automation_tokens.user_id, userData.user.id),
-            eq(automation_tokens.name, name)
-          )
+            eq(api_tokens.name, name),
+            eq(api_tokens.user_id, userData.user.id),
+          ),
         )
-        .limit(1)
+        .limit(1),
     );
-
     if (existingToken.length > 0) {
       return NextResponse.json(
         { message: "Token name already exists" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
-    // Create token record with temporary hash
     const tokenRecords = await rls((db) =>
       db
-        .insert(automation_tokens)
+        .insert(api_tokens)
         .values({
-          user_id: userData.user.id,
           name,
+          user_id: userData.user.id,
           token_hash: "temp",
-          revoked: false,
+          expires_at: expires_at ? new Date(expires_at) : null,
         })
-        .returning({ id: automation_tokens.id })
+        .returning({ id: api_tokens.id }),
     );
 
     const [tokenRecord] = tokenRecords;
 
-    // Generate actual token
     const token = generateToken(userData.user.id, tokenRecord.id);
     const tokenHash = hashToken(token);
 
-    // Update with actual hash
     await rls((db) =>
       db
-        .update(automation_tokens)
+        .update(api_tokens)
         .set({ token_hash: tokenHash })
-        .where(eq(automation_tokens.id, tokenRecord.id))
+        .where(eq(api_tokens.id, tokenRecord.id)),
     );
 
     return NextResponse.json(
@@ -89,15 +101,15 @@ export const POST = async (request: Request) => {
           name,
           token,
           created_at: new Date(),
+          expires_at: expires_at ? new Date(expires_at) : null,
         },
       },
-      { status: 201 }
+      { status: 201 },
     );
   } catch (err: unknown) {
-    console.error("Token creation error:", err);
     return NextResponse.json(
       { message: "Internal server error", error: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -105,8 +117,8 @@ export const POST = async (request: Request) => {
 export const GET = async () => {
   try {
     const { rls, supabase } = await createDrizzleSupabaseClient();
-
     const { data: userData, error: userError } = await supabase.auth.getUser();
+
     if (userError || !userData?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
@@ -114,14 +126,13 @@ export const GET = async () => {
     const tokens = await rls((db) =>
       db
         .select({
-          id: automation_tokens.id,
-          name: automation_tokens.name,
-          revoked: automation_tokens.revoked,
-          created_at: automation_tokens.created_at,
-          revoked_at: automation_tokens.revoked_at,
+          id: api_tokens.id,
+          name: api_tokens.name,
+          created_at: api_tokens.created_at,
+          expires_at: api_tokens.expires_at,
         })
-        .from(automation_tokens)
-        .where(eq(automation_tokens.user_id, userData.user.id))
+        .from(api_tokens)
+        .where(eq(api_tokens.user_id, userData.user.id)),
     );
 
     return NextResponse.json(
@@ -129,18 +140,16 @@ export const GET = async () => {
         tokens: tokens.map((t) => ({
           id: t.id,
           name: t.name,
-          status: t.revoked ? "revoked" : "active",
           created_at: t.created_at,
-          revoked_at: t.revoked_at,
+          expires_at: t.expires_at,
         })),
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (err: unknown) {
-    console.error("Token fetch error:", err);
     return NextResponse.json(
       { message: "Internal server error", error: String(err) },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
