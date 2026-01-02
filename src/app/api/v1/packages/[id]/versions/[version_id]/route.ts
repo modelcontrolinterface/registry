@@ -4,72 +4,6 @@ import { NextResponse } from "next/server";
 import { packages, package_versions } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
-export const GET = async (
-  _: Request,
-  { params }: { params: Promise<{ id: string; version_id: string }> },
-) => {
-  try {
-    const { rls } = await createDrizzleSupabaseClient();
-    const { id: package_id, version_id: requested_version } = await params;
-
-    let versionToFetch = requested_version;
-
-    if (requested_version === "default") {
-      const packageData = await rls((db) =>
-        db.query.packages.findFirst({
-          where: eq(packages.id, package_id),
-          columns: {
-            default_version: true,
-          },
-        }),
-      );
-
-      if (!packageData || !packageData.default_version) {
-        return NextResponse.json(
-          { message: `Default version not set for package '${package_id}'` },
-          { status: 404 },
-        );
-      }
-      versionToFetch = packageData.default_version;
-    }
-
-    const versionData = await rls((db) =>
-      db.query.package_versions.findFirst({
-        where: and(
-          eq(package_versions.package_id, package_id),
-          eq(package_versions.version, versionToFetch),
-        ),
-        with: {
-          publisher: {
-            columns: {
-              id: true,
-              avatar_url: true,
-              email: true,
-              display_name: true,
-            },
-          },
-        },
-      }),
-    );
-
-    if (!versionData) {
-      return NextResponse.json(
-        {
-          message: `Version '${versionToFetch}' for package '${package_id}' not found`,
-        },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json(versionData, { status: 200 });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { message: "Internal server error", error: String(err) },
-      { status: 500 },
-    );
-  }
-};
-
 async function uploadFileToStorage(
   supabase: any,
   bucketName: string,
@@ -138,6 +72,72 @@ const updatePackageVersionSchema = z.object({
       `Changelog file must be a markdown file (${ALLOWED_MARKDOWN_MIMES.join(", ")})`,
     ),
 });
+
+export const GET = async (
+  _: Request,
+  { params }: { params: Promise<{ id: string; version_id: string }> },
+) => {
+  try {
+    const { rls } = await createDrizzleSupabaseClient();
+    const { id: package_id, version_id: requested_version } = await params;
+
+    let versionToFetch = requested_version;
+
+    if (requested_version === "default") {
+      const packageData = await rls((db) =>
+        db.query.packages.findFirst({
+          where: eq(packages.id, package_id),
+          columns: {
+            default_version: true,
+          },
+        }),
+      );
+
+      if (!packageData || !packageData.default_version) {
+        return NextResponse.json(
+          { message: `Default version not set for package '${package_id}'` },
+          { status: 404 },
+        );
+      }
+      versionToFetch = packageData.default_version;
+    }
+
+    const versionData = await rls((db) =>
+      db.query.package_versions.findFirst({
+        where: and(
+          eq(package_versions.package_id, package_id),
+          eq(package_versions.version, versionToFetch),
+        ),
+        with: {
+          publisher: {
+            columns: {
+              id: true,
+              avatar_url: true,
+              email: true,
+              display_name: true,
+            },
+          },
+        },
+      }),
+    );
+
+    if (!versionData) {
+      return NextResponse.json(
+        {
+          message: `Version '${versionToFetch}' for package '${package_id}' not found`,
+        },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(versionData, { status: 200 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { message: "Internal server error", error: String(err) },
+      { status: 500 },
+    );
+  }
+};
 
 export const PATCH = async (
   request: Request,

@@ -6,6 +6,7 @@ import { compareSemanticVersions } from "@/lib/utils";
 import { packages, package_versions } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
+type UpdatePackageInput = z.infer<typeof updatePackageSchema>;
 export type GetPackageResult = Awaited<ReturnType<typeof getPackage>>;
 
 const getPackage = async (id: string) => {
@@ -122,30 +123,6 @@ const getPackage = async (id: string) => {
   };
 };
 
-export const GET = async (
-  _: Request,
-  { params }: { params: Promise<{ id: string }> },
-) => {
-  try {
-    const { id } = await params;
-    const data = await getPackage(id);
-
-    if (!data) {
-      return NextResponse.json(
-        { message: "Package not found" },
-        { status: 404 },
-      );
-    }
-
-    return NextResponse.json(data, { status: 200 });
-  } catch (err: unknown) {
-    return NextResponse.json(
-      { message: "Internal server error", error: String(err) },
-      { status: 500 },
-    );
-  }
-};
-
 const packageCategoryEnum = z.enum([
   "hook",
   "server",
@@ -185,7 +162,29 @@ const updatePackageSchema = z.object({
   deprecation_message: z.string().optional(),
 });
 
-type UpdatePackageInput = z.infer<typeof updatePackageSchema>;
+export const GET = async (
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) => {
+  try {
+    const { id } = await params;
+    const data = await getPackage(id);
+
+    if (!data) {
+      return NextResponse.json(
+        { message: "Package not found" },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json(data, { status: 200 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { message: "Internal server error", error: String(err) },
+      { status: 500 },
+    );
+  }
+};
 
 export const PATCH = async (
   request: Request,

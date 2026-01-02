@@ -70,7 +70,6 @@ export const GET = async (
       headers: headers,
     });
   } catch (err: unknown) {
-    console.error("Error downloading tarball:", err);
     return NextResponse.json(
       { message: "Internal server error", error: String(err) },
       { status: 500 },

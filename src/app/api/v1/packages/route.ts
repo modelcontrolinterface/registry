@@ -157,6 +157,39 @@ const getPackages = async (
   };
 };
 
+const packageCategoryEnum = z.enum([
+  "hook",
+  "server",
+  "sandbox",
+  "interceptor",
+]);
+
+const createPackageSchema = z.object({
+  id: z
+    .string()
+    .min(3, "Package ID must be at least 3 characters long")
+    .max(64, "Package ID must be at most 64 characters long")
+    .regex(packageNameRegex, "Invalid package ID format"),
+  name: z
+    .string()
+    .min(3, "Package name must be at least 3 characters long")
+    .max(64, "Package name must be at most 64 characters long"),
+  categories: z
+    .array(packageCategoryEnum)
+    .min(1, "At least one category is required")
+    .max(4, "You can select up to 4 categories"),
+  description: z
+    .string()
+    .max(500, "Description must be at most 500 characters long"),
+  homepage: z.url("Homepage must be a valid URL").optional(),
+  repository: z.url("Repository must be a valid URL").optional(),
+  keywords: z
+    .array(
+      z.string().max(64, "Each keyword must be at most 64 characters long"),
+    )
+    .max(5, "You can have up to 5 keywords"),
+});
+
 export const GET = async (request: Request) => {
   try {
     const { searchParams } = new URL(request.url);
@@ -231,39 +264,6 @@ export const GET = async (request: Request) => {
     );
   }
 };
-
-const packageCategoryEnum = z.enum([
-  "hook",
-  "server",
-  "sandbox",
-  "interceptor",
-]);
-
-const createPackageSchema = z.object({
-  id: z
-    .string()
-    .min(3, "Package ID must be at least 3 characters long")
-    .max(64, "Package ID must be at most 64 characters long")
-    .regex(packageNameRegex, "Invalid package ID format"),
-  name: z
-    .string()
-    .min(3, "Package name must be at least 3 characters long")
-    .max(64, "Package name must be at most 64 characters long"),
-  categories: z
-    .array(packageCategoryEnum)
-    .min(1, "At least one category is required")
-    .max(4, "You can select up to 4 categories"),
-  description: z
-    .string()
-    .max(500, "Description must be at most 500 characters long"),
-  homepage: z.url("Homepage must be a valid URL").optional(),
-  repository: z.url("Repository must be a valid URL").optional(),
-  keywords: z
-    .array(
-      z.string().max(64, "Each keyword must be at most 64 characters long"),
-    )
-    .max(5, "You can have up to 5 keywords"),
-});
 
 export const POST = async (request: Request) => {
   try {
