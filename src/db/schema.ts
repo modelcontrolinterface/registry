@@ -50,7 +50,7 @@ export const users = pgTable(
   },
   (t) => [
     index("users_email_idx").on(t.email),
-
+   
     pgPolicy("users_select_public", {
       for: "select",
       to: "public",
@@ -418,6 +418,60 @@ export const audits = pgTable(
       withCheck: sql`true`,
     }),
   ],
+);
+
+export const automation_tokens = pgTable(
+  "automation_tokens",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    user_id: uuid("user_id")
+      .notNull()
+      .references(() => users.id, { onDelete: "cascade" }),
+    name: varchar("name", { length: 100 }).notNull(),
+    token_hash: varchar("token_hash", { length: 255 }).notNull(),
+    revoked: boolean("revoked").notNull().default(false),
+    created_at: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    revoked_at: timestamp("revoked_at", { withTimezone: true }),
+  },
+  (t) => [
+    index("automation_tokens_user_id_idx").on(t.user_id),
+    index("automation_tokens_revoked_idx").on(t.revoked),
+    unique("automation_tokens_user_id_name_unique").on(t.user_id, t.name),
+
+    pgPolicy("automation_tokens_select_own", {
+      for: "select",
+      to: authenticatedRole,
+      using: sql`${t.user_id} = ${authUid}`,
+    }),
+    pgPolicy("automation_tokens_insert_own", {
+      for: "insert",
+      to: authenticatedRole,
+      withCheck: sql`${t.user_id} = ${authUid}`,
+    }),
+    pgPolicy("automation_tokens_delete_own", {
+      for: "delete",
+      to: authenticatedRole,
+      using: sql`${t.user_id} = ${authUid}`,
+    }),
+    pgPolicy("automation_tokens_admin_all", {
+      for: "all",
+      to: adminRole,
+      using: sql`true`,
+      withCheck: sql`true`,
+    }),
+  ],
+);
+
+export const automation_tokensRelations = relations(
+  automation_tokens,
+  ({ one }) => ({
+    user: one(users, {
+      fields: [automation_tokens.user_id],
+      references: [users.id],
+    }),
+  })
 );
 
 export const usersRelations = relations(users, ({ many }) => ({
