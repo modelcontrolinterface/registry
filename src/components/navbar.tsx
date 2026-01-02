@@ -112,10 +112,10 @@ const Navbar = () => {
                   <DropdownMenuItem asChild>
                     <Link href={`/users/${userProfile.id}`}>Profile</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild disabled>
+                  <DropdownMenuItem asChild>
                     <Link href="/dashboard">Dashboard</Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild disabled>
+                  <DropdownMenuItem asChild>
                     <Link href="/settings">Settings</Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
