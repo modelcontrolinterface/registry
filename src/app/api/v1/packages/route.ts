@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { safeNumber } from "@/lib/utils";
 import { NextResponse } from "next/server";
+import { Pagination } from "@/lib/interfaces";
 import { PgColumn } from "drizzle-orm/pg-core";
 import { packageNameRegex } from "@/lib/regex";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
@@ -15,16 +16,7 @@ import {
 
 export type GetPackagesResult = Awaited<ReturnType<typeof getPackages>>;
 
-export interface Pagination {
-  page: number;
-  limit: number;
-  total: number;
-  total_pages: number;
-  hasNextPage: boolean;
-  hasPrevPage: boolean;
-}
-
-export interface Filters {
+export interface PackageFilters {
   sort: PackageSort;
   query: string | null;
   owner: string | null;
@@ -34,7 +26,7 @@ export interface Filters {
 }
 
 export interface GetPackagesApiResponse {
-  filters: Filters;
+  filters: PackageFilters;
   pagination: Pagination;
   packages: GetPackagesResult["packages"];
 }
@@ -293,11 +285,11 @@ export const POST = async (request: Request) => {
     const {
       id,
       name,
-      categories,
       description,
+      categories,
+      keywords,
       homepage,
       repository,
-      keywords,
     } = validation.data;
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -324,9 +316,9 @@ export const POST = async (request: Request) => {
         .values({
           id,
           name,
-          keywords,
+          description,
           categories,
-          description: description,
+          keywords,
           homepage: homepage ?? null,
           repository: repository ?? null,
           primary_owner_id: userData.user.id,
