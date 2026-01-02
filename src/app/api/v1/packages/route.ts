@@ -203,8 +203,6 @@ export const GET = async (request: Request) => {
     );
 
     const totalPages = Math.max(1, Math.ceil(total / limitNum));
-    const hasNextPage = pageNum < totalPages;
-    const hasPrevPage = pageNum > 1;
 
     return NextResponse.json(
       {
