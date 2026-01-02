@@ -1,5 +1,5 @@
-import { NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
+import { NextResponse } from "next/server";
 import { package_versions } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
@@ -8,7 +8,7 @@ export const GET = async (
   { params }: { params: { id: string; version_id: string } },
 ) => {
   try {
-    const { id: package_id, version_id } = params;
+    const { id: package_id, version_id } = await params;
     const { rls } = await createDrizzleSupabaseClient();
 
     const versionData = await rls((db) =>
@@ -18,30 +18,29 @@ export const GET = async (
           eq(package_versions.version, version_id),
         ),
         columns: {
-          changelog_url: true,
+          changelog: true,
         },
       }),
     );
 
-    if (!versionData || !versionData.changelog_url) {
+    if (!versionData || !versionData.changelog) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    // Fetch content from the URL
-    const response = await fetch(versionData.changelog_url);
+    const response = await fetch(versionData.changelog);
     if (!response.ok) {
-      throw new Error(`Failed to fetch changelog content from URL: ${response.statusText}`);
+      throw new Error(
+        `Failed to fetch changelog content from URL: ${response.statusText}`,
+      );
     }
-    const changelogContent = await response.text();
 
-    return new NextResponse(changelogContent, {
+    return new NextResponse(await response.text(), {
       status: 200,
       headers: {
         "Content-Type": "text/plain",
       },
     });
   } catch (err: unknown) {
-    console.error("Error fetching changelog content:", err);
     return NextResponse.json(
       { message: "Internal server error", error: String(err) },
       { status: 500 },
