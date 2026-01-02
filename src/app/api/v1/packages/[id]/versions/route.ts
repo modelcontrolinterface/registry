@@ -1,7 +1,7 @@
 import { z } from "zod";
 import crypto from "crypto";
-import { eq, and } from "drizzle-orm";
 import { NextResponse } from "next/server";
+import { desc, eq, and } from "drizzle-orm";
 import { semanticVersionRegex } from "@/lib/regex";
 import { packages, package_versions } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
@@ -111,6 +111,47 @@ const createPackageVersionSchema = z.object({
     .regex(semanticVersionRegex, "Invalid semantic version format")
     .min(1, "ABI version is required"),
 });
+
+export const GET = async (
+  _: Request,
+  { params }: { params: Promise<{ id: string }> },
+) => {
+  try {
+    const { rls } = await createDrizzleSupabaseClient();
+    const { id: package_id } = await params;
+
+    const versions = await rls((db) =>
+      db.query.package_versions.findMany({
+        where: eq(package_versions.package_id, package_id),
+        with: {
+          publisher: {
+            columns: {
+              id: true,
+              avatar_url: true,
+              email: true,
+              display_name: true,
+            },
+          },
+        },
+        orderBy: desc(package_versions.created_at),
+      }),
+    );
+
+    if (!versions || versions.length === 0) {
+      return NextResponse.json(
+        { message: `No versions found for package '${package_id}'` },
+        { status: 404 },
+      );
+    }
+
+    return NextResponse.json({ versions }, { status: 200 });
+  } catch (err: unknown) {
+    return NextResponse.json(
+      { message: "Internal server error", error: String(err) },
+      { status: 500 },
+    );
+  }
+};
 
 export const POST = async (
   request: Request,
