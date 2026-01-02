@@ -42,7 +42,11 @@ const MAX_LICENSE_FILE_SIZE = 512_000;
 
 const ALLOWED_PLAINTEXT_MIMES = ["text/plain"];
 const ALLOWED_MARKDOWN_MIMES = ["text/markdown"];
-const ALLOWED_TARBALL_MIMES = ["application/x-tar"];
+const ALLOWED_TARBALL_MIMES = [
+  "application/gzip",
+  "application/x-gzip",
+  "application/tar+gzip",
+];
 
 const createPackageVersionSchema = z.object({
   version: z
@@ -220,7 +224,7 @@ export const POST = async (
       );
     }
 
-    const storagePath = `packages/${package_id}/versions/${validatedVersion}`;
+    const storagePath = `packages/${package_id}/${validatedVersion}`;
 
     let tarballUrl: string;
     let tarballSize: number;
@@ -233,7 +237,7 @@ export const POST = async (
       readmeUrl = await uploadFileToStorage(
         supabase,
         "package-files",
-        `${storagePath}/readme.md`,
+        `${storagePath}/README.md`,
         validatedReadme,
       );
     }
@@ -241,7 +245,7 @@ export const POST = async (
       changelogUrl = await uploadFileToStorage(
         supabase,
         "package-files",
-        `${storagePath}/changelog.md`,
+        `${storagePath}/CHANGELOG.md`,
         validatedChangelog,
       );
     }
@@ -249,7 +253,7 @@ export const POST = async (
       licenseFileUrl = await uploadFileToStorage(
         supabase,
         "package-files",
-        `${storagePath}/license.md`,
+        `${storagePath}/LICENSE`,
         validatedLicenseFile,
       );
     }
@@ -257,7 +261,7 @@ export const POST = async (
     tarballUrl = await uploadFileToStorage(
       supabase,
       "package-files",
-      `${storagePath}/tarball.tar.gz`,
+      `${storagePath}/${package_id}@${validatedVersion}.tar.gz`,
       validatedTarball,
     );
 
@@ -316,4 +320,3 @@ export const POST = async (
     );
   }
 };
-
