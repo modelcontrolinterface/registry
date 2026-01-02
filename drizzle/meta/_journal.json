@@ -8,6 +8,20 @@
       "when": 1766164040325,
       "tag": "0000_sudden_blazing_skull",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1704225600000,
+      "tag": "0001_triggers_and_functions",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1704225600001,
+      "tag": "0002_add_automation_tokens",
+      "breakpoints": true
     }
   ]
 }

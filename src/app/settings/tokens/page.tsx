@@ -156,32 +156,34 @@ export default function TokensPage() {
         )}
 
         {newToken && (
-          <Card className="border-green-200 bg-green-50 p-6">
+          <Card className="border-gray-100 p-6">
             <div className="space-y-4">
               <div className="flex items-start justify-between">
                 <div>
-                  <h3 className="font-semibold text-green-900 mb-1">
+                  <h3 className="font-semibold mb-1">
                     Token Created Successfully
                   </h3>
-                  <p className="text-sm text-green-800">
+                  <p className="text-sm ">
                     Copy your token now. You won't be able to see it again.
                   </p>
                 </div>
               </div>
 
-              <div className="bg-white rounded border border-green-200 p-4">
-                <div className="flex items-center justify-between gap-3">
+              <div className="rounded border border-gray-100 p-4">
+                <div className="flex items-center justify-between gap-6">
                   <code className="text-sm font-mono text-foreground overflow-hidden text-ellipsis">
                     {showTokenValue
                       ? newToken.token
                       : newToken.token.substring(0, 20) + "..."}
                   </code>
-                  <button
+                  <Button
+                    size="sm"
+                    variant="outline"
                     onClick={() => setShowTokenValue(!showTokenValue)}
                     className="text-xs text-muted-foreground hover:text-foreground"
                   >
                     {showTokenValue ? "Hide" : "Show"}
-                  </button>
+                  </Button>
                   <Button
                     size="sm"
                     variant="outline"
@@ -269,8 +271,8 @@ export default function TokensPage() {
                         <span
                           className={`inline-block px-3 py-1 rounded-full text-xs font-medium ${
                             token.status === "active"
-                              ? "bg-green-100 text-green-800"
-                              : "bg-red-100 text-red-800"
+                              ? "border border-gray-100"
+                              : "border border-gray-100"
                           }`}
                         >
                           {token.status === "active" ? "Active" : "Revoked"}

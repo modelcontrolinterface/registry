@@ -19,18 +19,20 @@ export async function authenticateWithToken(
     return null;
   }
 
-  const { db } = await createDrizzleSupabaseClient();
+  const { rls } = await createDrizzleSupabaseClient();
 
   // Check if token exists and is not revoked
-  const tokenResults = await db
-    .select({
-      id: automation_tokens.id,
-      user_id: automation_tokens.user_id,
-      revoked: automation_tokens.revoked,
-    })
-    .from(automation_tokens)
-    .where(eq(automation_tokens.id, payload.tokenId))
-    .limit(1);
+  const tokenResults = await rls((db) =>
+    db
+      .select({
+        id: automation_tokens.id,
+        user_id: automation_tokens.user_id,
+        revoked: automation_tokens.revoked,
+      })
+      .from(automation_tokens)
+      .where(eq(automation_tokens.id, payload.tokenId))
+      .limit(1)
+  );
 
   if (tokenResults.length === 0 || tokenResults[0].revoked) {
     return null;
@@ -39,14 +41,16 @@ export async function authenticateWithToken(
   const tokenRecord = tokenResults[0];
 
   // Get user info
-  const userResults = await db
-    .select({
-      id: users.id,
-      email: users.email,
-    })
-    .from(users)
-    .where(eq(users.id, tokenRecord.user_id))
-    .limit(1);
+  const userResults = await rls((db) =>
+    db
+      .select({
+        id: users.id,
+        email: users.email,
+      })
+      .from(users)
+      .where(eq(users.id, tokenRecord.user_id))
+      .limit(1)
+  );
 
   if (userResults.length === 0) {
     return null;

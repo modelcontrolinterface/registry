@@ -8,7 +8,7 @@ export const DELETE = async (
   { params }: { params: Promise<{ id: string }> }
 ) => {
   try {
-    const { db, supabase } = await createDrizzleSupabaseClient();
+    const { rls, supabase } = await createDrizzleSupabaseClient();
     const { id } = await params;
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -17,16 +17,18 @@ export const DELETE = async (
     }
 
     // Verify ownership
-    const tokenResults = await db
-      .select()
-      .from(automation_tokens)
-      .where(
-        and(
-          eq(automation_tokens.id, id),
-          eq(automation_tokens.user_id, userData.user.id)
+    const tokenResults = await rls((db) =>
+      db
+        .select()
+        .from(automation_tokens)
+        .where(
+          and(
+            eq(automation_tokens.id, id),
+            eq(automation_tokens.user_id, userData.user.id)
+          )
         )
-      )
-      .limit(1);
+        .limit(1)
+    );
 
     if (tokenResults.length === 0) {
       return NextResponse.json(
@@ -45,13 +47,15 @@ export const DELETE = async (
     }
 
     // Revoke token
-    await db
-      .update(automation_tokens)
-      .set({
-        revoked: true,
-        revoked_at: new Date(),
-      })
-      .where(eq(automation_tokens.id, id));
+    await rls((db) =>
+      db
+        .update(automation_tokens)
+        .set({
+          revoked: true,
+          revoked_at: new Date(),
+        })
+        .where(eq(automation_tokens.id, id))
+    );
 
     return NextResponse.json(
       { message: "Token revoked successfully" },

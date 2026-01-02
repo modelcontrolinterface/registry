@@ -14,7 +14,7 @@ const createTokenSchema = z.object({
 
 export const POST = async (request: Request) => {
   try {
-    const { db, supabase } = await createDrizzleSupabaseClient();
+    const { rls, supabase } = await createDrizzleSupabaseClient();
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) {
@@ -34,16 +34,18 @@ export const POST = async (request: Request) => {
     const { name } = validation.data;
 
     // Check for duplicate token name
-    const existingToken = await db
-      .select()
-      .from(automation_tokens)
-      .where(
-        and(
-          eq(automation_tokens.user_id, userData.user.id),
-          eq(automation_tokens.name, name)
+    const existingToken = await rls((db) =>
+      db
+        .select()
+        .from(automation_tokens)
+        .where(
+          and(
+            eq(automation_tokens.user_id, userData.user.id),
+            eq(automation_tokens.name, name)
+          )
         )
-      )
-      .limit(1);
+        .limit(1)
+    );
 
     if (existingToken.length > 0) {
       return NextResponse.json(
@@ -53,25 +55,31 @@ export const POST = async (request: Request) => {
     }
 
     // Create token record with temporary hash
-    const [tokenRecord] = await db
-      .insert(automation_tokens)
-      .values({
-        user_id: userData.user.id,
-        name,
-        token_hash: "temp",
-        revoked: false,
-      })
-      .returning({ id: automation_tokens.id });
+    const tokenRecords = await rls((db) =>
+      db
+        .insert(automation_tokens)
+        .values({
+          user_id: userData.user.id,
+          name,
+          token_hash: "temp",
+          revoked: false,
+        })
+        .returning({ id: automation_tokens.id })
+    );
+
+    const [tokenRecord] = tokenRecords;
 
     // Generate actual token
     const token = generateToken(userData.user.id, tokenRecord.id);
     const tokenHash = hashToken(token);
 
     // Update with actual hash
-    await db
-      .update(automation_tokens)
-      .set({ token_hash: tokenHash })
-      .where(eq(automation_tokens.id, tokenRecord.id));
+    await rls((db) =>
+      db
+        .update(automation_tokens)
+        .set({ token_hash: tokenHash })
+        .where(eq(automation_tokens.id, tokenRecord.id))
+    );
 
     return NextResponse.json(
       {
@@ -96,23 +104,25 @@ export const POST = async (request: Request) => {
 
 export const GET = async () => {
   try {
-    const { db, supabase } = await createDrizzleSupabaseClient();
+    const { rls, supabase } = await createDrizzleSupabaseClient();
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
     if (userError || !userData?.user) {
       return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
     }
 
-    const tokens = await db
-      .select({
-        id: automation_tokens.id,
-        name: automation_tokens.name,
-        revoked: automation_tokens.revoked,
-        created_at: automation_tokens.created_at,
-        revoked_at: automation_tokens.revoked_at,
-      })
-      .from(automation_tokens)
-      .where(eq(automation_tokens.user_id, userData.user.id));
+    const tokens = await rls((db) =>
+      db
+        .select({
+          id: automation_tokens.id,
+          name: automation_tokens.name,
+          revoked: automation_tokens.revoked,
+          created_at: automation_tokens.created_at,
+          revoked_at: automation_tokens.revoked_at,
+        })
+        .from(automation_tokens)
+        .where(eq(automation_tokens.user_id, userData.user.id))
+    );
 
     return NextResponse.json(
       {
