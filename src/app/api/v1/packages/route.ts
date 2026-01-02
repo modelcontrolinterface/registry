@@ -222,8 +222,6 @@ export const GET = async (request: Request) => {
           limit: limitNum,
           total,
           total_pages: totalPages,
-          has_next_page: hasNextPage,
-          has_prev_page: hasPrevPage,
         },
       },
       { status: 200 },
