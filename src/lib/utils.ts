@@ -16,6 +16,30 @@ export const formatDownloads = (count: number) => {
   return count.toString();
 };
 
+export const fetcher = async (url: string) => {
+  const res = await fetch(url);
+
+  if (!res.ok) {
+    const error = new Error(
+      "An error occurred while fetching the data.",
+    ) as Error & {
+      info: any;
+      status: number;
+    };
+
+    try {
+      error.info = await res.json();
+    } catch (e) {
+      error.info = await res.text();
+    }
+
+    error.status = res.status;
+    throw error;
+  }
+
+  return res.json();
+};
+
 export const compareSemanticVersions = (v1: string, v2: string): number => {
   const parse = (version: string) => {
     const parts = version.split("-");
@@ -64,3 +88,4 @@ export const compareSemanticVersions = (v1: string, v2: string): number => {
 
   return 0;
 };
+
