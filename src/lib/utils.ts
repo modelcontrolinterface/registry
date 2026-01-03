@@ -58,17 +58,16 @@ export const compareSemanticVersions = (v1: string, v2: string): number => {
   }
 
   if (p1.pre.length === 0 && p2.pre.length === 0) return 0;
-  if (p1.pre.length === 0) return 1; // Stable version is greater than pre-release
-  if (p2.pre.length === 0) return -1; // Pre-release is less than stable version
+  if (p1.pre.length === 0) return 1;
+  if (p2.pre.length === 0) return -1;
 
   for (let i = 0; i < Math.max(p1.pre.length, p2.pre.length); i++) {
     const s1 = p1.pre[i];
     const s2 = p2.pre[i];
 
-    if (s1 === undefined) return -1; // v1 is shorter, so it's older
-    if (s2 === undefined) return 1; // v2 is shorter, so it's older
+    if (s1 === undefined) return -1;
+    if (s2 === undefined) return 1;
 
-    // Numeric comparison if both are numbers
     const isNum1 = /^\d+$/.test(s1);
     const isNum2 = /^\d+$/.test(s2);
 
@@ -77,11 +76,10 @@ export const compareSemanticVersions = (v1: string, v2: string): number => {
       const n2 = Number(s2);
       if (n1 !== n2) return n1 - n2;
     } else if (isNum1) {
-      return -1; // Numbers are less than strings
+      return -1;
     } else if (isNum2) {
-      return 1; // Strings are greater than numbers
+      return 1;
     } else {
-      // Lexicographical comparison for strings
       if (s1 !== s2) return s1.localeCompare(s2);
     }
   }
