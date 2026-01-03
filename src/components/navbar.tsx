@@ -1,19 +1,17 @@
 "use client"
 
-import { User } from "@supabase/supabase-js"
+import { Suspense } from "react"
+import { useSWRConfig } from "swr"
+import { useUser } from "@/hooks/use-user"
 import { usePathname } from "next/navigation"
 import { createClient } from "@/lib/supabase/client"
-import { Suspense, useEffect, useState } from "react"
-import useSWR, { useSWRConfig } from "swr"
-import { fetcher } from "@/lib/fetcher"
 
 import Link from "next/link"
 import Logo from "@/components/logo"
-import { Github } from "lucide-react"
 import SearchInput from "@/components/search"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuItem,
@@ -22,41 +20,11 @@ import {
   DropdownMenuSeparator
 } from "@/components/ui/dropdown-menu"
 
-interface UserProfile {
-  id: string
-  avatar_url?: string
-  display_name: string
-}
-
 const Navbar = () => {
   const pathname = usePathname()
   const supabase = createClient()
   const { mutate } = useSWRConfig()
-
-  const [user, setUser] = useState<User | null>(null)
-  const [loadingUser, setLoadingUser] = useState(true)
-
-  useEffect(() => {
-    const loadUser = async () => {
-      setLoadingUser(true)
-      try {
-        const { data: { user: authUser } } = await supabase.auth.getUser()
-        setUser(authUser)
-      } catch (error) {
-        console.error("Error loading user:", error)
-        setUser(null)
-      } finally {
-        setLoadingUser(false)
-      }
-    }
-
-    loadUser()
-  }, [supabase.auth])
-
-  const { data: userProfileData, isLoading: isLoadingProfile } = useSWR(user ? `/api/v1/users/${user.id}` : null, fetcher)
-  const userProfile: UserProfile | undefined = userProfileData?.user
-
-  const loading = loadingUser || (!!user && isLoadingProfile)
+  const { user, isLoading } = useUser()
 
   const handleSignInWithGithub = async () => {
     await supabase.auth.signInWithOAuth({
@@ -68,12 +36,8 @@ const Navbar = () => {
   }
 
   const handleSignOut = async () => {
-    const key = user ? `/api/v1/users/${user.id}` : null
     await supabase.auth.signOut()
-    setUser(null)
-    if (key) {
-      mutate(key, undefined, false)
-    }
+    mutate(null, undefined, false)
   }
 
   return (
@@ -92,28 +56,23 @@ const Navbar = () => {
         )}
 
         <div className="flex items-center gap-4">
-          {loading ? (
+          {isLoading ? (
             <Skeleton className="h-10 w-10 rounded-full" />
-          ) : !user || !userProfile ? (
+          ) : !user ? (
             <Button onClick={handleSignInWithGithub} variant="outline">
-              <Github />
-              Signin with github
+              Signin with Github
             </Button>
           ) : (
             <>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Avatar className="cursor-pointer hover:ring-2 hover:ring-primary transition-all">
-                    <AvatarImage src={userProfile.avatar_url || ""} />
-                    <AvatarFallback>{userProfile.display_name?.[0]}</AvatarFallback>
+                    <AvatarFallback>{user.display_name?.[0]}</AvatarFallback>
                   </Avatar>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56">
                   <DropdownMenuItem asChild>
-                    <Link href={`/users/${userProfile.id}`}>Profile</Link>
-                  </DropdownMenuItem>
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard">Dashboard</Link>
+                    <Link href={`/users/${user.id}`}>Profile</Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/settings">Settings</Link>
