@@ -2,6 +2,7 @@
   "rsc": true,
   "tsx": true,
   "style": "new-york",
+  "iconLibrary": "lucide",
   "$schema": "https://ui.shadcn.com/schema.json",
   "tailwind": {
     "config": "",
@@ -10,7 +11,6 @@
     "baseColor": "neutral",
     "css": "src/app/globals.css"
   },
-  "iconLibrary": "lucide",
   "aliases": {
     "lib": "@/lib",
     "hooks": "@/hooks",
