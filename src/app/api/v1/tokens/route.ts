@@ -2,8 +2,8 @@ import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { api_tokens } from "@/db/schema";
 import { NextResponse } from "next/server";
+import { generateApiToken, hashToken } from "@/lib/utils";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
-import { generateToken, hashToken } from "@/lib/token-utils";
 
 const createTokenSchema = z.object({
   name: z
@@ -83,13 +83,11 @@ export const POST = async (request: Request) => {
 
     const [tokenRecord] = tokenRecords;
 
-    const token = generateToken(userData.user.id, tokenRecord.id);
-    const tokenHash = hashToken(token);
-
+    const { token, hashedToken } = generateApiToken();
     await rls((db) =>
       db
         .update(api_tokens)
-        .set({ token_hash: tokenHash })
+        .set({ token_hash: hashedToken })
         .where(eq(api_tokens.id, tokenRecord.id)),
     );
 
