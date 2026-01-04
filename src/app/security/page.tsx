@@ -1,14 +1,9 @@
-import MarkdownPageRenderer from "@/components/markdown-page-renderer";
-import { promises as fs } from "fs";
 import path from "path";
+import { promises as fs } from "fs";
+import MarkdownPageRenderer from "@/components/markdown-page-renderer";
 
 export default async function SecurityPage() {
-  const markdownPath = path.join(
-    process.cwd(),
-    "src",
-    "content",
-    "security.md",
-  );
+  const markdownPath = path.join(process.cwd(), "src", "content", "security.md");
   const markdown = await fs.readFile(markdownPath, "utf-8");
 
   return (
