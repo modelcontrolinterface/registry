@@ -11,12 +11,7 @@ import { useSearch } from "@/hooks/use-search";
 import Pagination from "@/components/pagination";
 import { Separator } from "@/components/ui/separator";
 import PackageCard, { PackageCardSkeleton } from "@/components/package-card";
-import {
-  PackageSort,
-  PackageVerified,
-  PackageCategory,
-  PackageDeprecated,
-} from "@/lib/enums";
+import { PackageSort, PackageVerified, PackageCategory, PackageDeprecated } from "@/types/package-filter";
 
 interface PackageListProps {
   ownerId?: string;

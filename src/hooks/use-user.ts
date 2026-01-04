@@ -16,9 +16,9 @@ export function useUser() {
 
     const mapUser = (supabaseUser: any): UserProfile => ({
       id: supabaseUser.id,
+      email: supabaseUser.email!,
       display_name:
         supabaseUser.user_metadata.display_name || supabaseUser.email,
-      email: supabaseUser.email!,
     });
 
     supabase.auth.getUser().then(({ data: { user } }) => {

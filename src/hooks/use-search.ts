@@ -1,14 +1,14 @@
+import useSWR from "swr";
+import { fetcher } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import useSWR from "swr";
 import { GetPackagesApiResponse } from "@/app/api/v1/packages/route";
 import {
   PackageSort,
   PackageVerified,
   PackageCategory,
   PackageDeprecated,
-} from "@/lib/enums";
-import { fetcher } from "@/lib/fetcher";
+} from "@/types/package-filter";
 
 interface UseSearchProps {
   ownerId?: string;
@@ -48,7 +48,8 @@ export const useSearch = ({ ownerId }: UseSearchProps = {}) => {
     if (sort !== PackageSort.Relevance) params.set("sort", sort);
     if (verified !== PackageVerified.All) params.set("verified", verified);
     if (category !== PackageCategory.All) params.set("category", category);
-    if (deprecated !== PackageDeprecated.All) params.set("deprecated", deprecated);
+    if (deprecated !== PackageDeprecated.All)
+      params.set("deprecated", deprecated);
 
     router.push(`/search?${params.toString()}`, { scroll: false });
   }, [category, page, sort, verified, deprecated, query, router, ownerId]);
@@ -59,12 +60,16 @@ export const useSearch = ({ ownerId }: UseSearchProps = {}) => {
   if (sort) params.set("sort", sort);
   if (page) params.set("page", String(page));
   if (category !== PackageCategory.All) params.set("category", category);
-  if (deprecated !== PackageDeprecated.All) params.set("deprecated", deprecated);
-  params.set("limit", "12");
   if (verified !== PackageVerified.All) params.set("verified", verified);
+  if (deprecated !== PackageDeprecated.All)
+    params.set("deprecated", deprecated);
+  params.set("limit", "12");
   const url = `/api/v1/packages?${params.toString()}`;
 
-  const { data, error, isLoading } = useSWR<GetPackagesApiResponse>(url, fetcher);
+  const { data, error, isLoading } = useSWR<GetPackagesApiResponse>(
+    url,
+    fetcher,
+  );
 
   const handleSortChange = (value: string) => {
     setPage(1);
@@ -109,4 +114,3 @@ export const useSearch = ({ ownerId }: UseSearchProps = {}) => {
     handleDeprecatedChange,
   };
 };
-

@@ -1,11 +1,11 @@
 export enum PackageSort {
-  Relevance = "relevance",
-  Downloads = "downloads",
   Newest = "newest",
   Oldest = "oldest",
+  Updated = "updated",
   NameAsc = "name-asc",
   NameDesc = "name-desc",
-  Updated = "updated",
+  Relevance = "relevance",
+  Downloads = "downloads",
 }
 
 export enum PackageVerified {
@@ -27,3 +27,4 @@ export enum PackageDeprecated {
   Deprecated = "deprecated",
   NotDeprecated = "not-deprecated",
 }
+

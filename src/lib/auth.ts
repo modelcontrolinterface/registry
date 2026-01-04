@@ -12,7 +12,7 @@ export interface AuthenticatedUser {
  * Authenticate using JWT automation token
  */
 export async function authenticateWithToken(
-  token: string
+  token: string,
 ): Promise<AuthenticatedUser | null> {
   const payload = verifyToken(token);
   if (!payload) {
@@ -31,7 +31,7 @@ export async function authenticateWithToken(
       })
       .from(automation_tokens)
       .where(eq(automation_tokens.id, payload.tokenId))
-      .limit(1)
+      .limit(1),
   );
 
   if (tokenResults.length === 0 || tokenResults[0].revoked) {
@@ -49,7 +49,7 @@ export async function authenticateWithToken(
       })
       .from(users)
       .where(eq(users.id, tokenRecord.user_id))
-      .limit(1)
+      .limit(1),
   );
 
   if (userResults.length === 0) {
@@ -62,7 +62,9 @@ export async function authenticateWithToken(
 /**
  * Extract token from Authorization header
  */
-export function extractTokenFromHeader(authHeader: string | null): string | null {
+export function extractTokenFromHeader(
+  authHeader: string | null,
+): string | null {
   if (!authHeader) {
     return null;
   }
