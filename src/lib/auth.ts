@@ -1,7 +1,7 @@
 import { eq } from "drizzle-orm";
 import { automation_tokens, users } from "@/db/schema";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
-import { verifyToken } from "./token-utils";
+import { hashToken, verifyApiToken } from "./utils"; // Updated import
 
 export interface AuthenticatedUser {
   id: string;
@@ -9,36 +9,42 @@ export interface AuthenticatedUser {
 }
 
 /**
- * Authenticate using JWT automation token
+ * Authenticate using API token
+ * NOTE: This is a placeholder implementation. The full logic for
+ * retrieving the stored hashed token and verifying against it will
+ * be implemented as part of the "Rework API Token Generation and Verification" task.
  */
 export async function authenticateWithToken(
   token: string,
 ): Promise<AuthenticatedUser | null> {
-  const payload = verifyToken(token);
-  if (!payload) {
-    return null;
-  }
-
   const { rls } = await createDrizzleSupabaseClient();
 
-  // Check if token exists and is not revoked
-  const tokenResults = await rls((db) =>
+  // Placeholder: In a real scenario, you would extract a token identifier
+  // from the 'token' string, query the database for the corresponding
+  // stored hashed token, and then use verifyApiToken.
+  // For now, we'll simulate a lookup.
+  const storedTokenRecord = await rls((db) =>
     db
       .select({
         id: automation_tokens.id,
         user_id: automation_tokens.user_id,
         revoked: automation_tokens.revoked,
+        token_hash: automation_tokens.token_hash, // Assuming token_hash is available
       })
       .from(automation_tokens)
-      .where(eq(automation_tokens.id, payload.tokenId))
+      .where(eq(automation_tokens.token_hash, hashToken(token))) // Simulating lookup by hash
       .limit(1),
   );
 
-  if (tokenResults.length === 0 || tokenResults[0].revoked) {
+  if (
+    storedTokenRecord.length === 0 ||
+    storedTokenRecord[0].revoked ||
+    !verifyApiToken(token, storedTokenRecord[0].token_hash)
+  ) {
     return null;
   }
 
-  const tokenRecord = tokenResults[0];
+  const tokenRecord = storedTokenRecord[0];
 
   // Get user info
   const userResults = await rls((db) =>
