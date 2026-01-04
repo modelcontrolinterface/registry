@@ -97,11 +97,3 @@ export function generateApiToken(): { token: string; hashedToken: string } {
   const hashedToken = hashToken(token);
   return { token, hashedToken };
 }
-
-export function verifyApiToken(
-  providedToken: string,
-  storedHashedToken: string,
-): boolean {
-  const hashedProvidedToken = hashToken(providedToken);
-  return hashedProvidedToken === storedHashedToken;
-}
