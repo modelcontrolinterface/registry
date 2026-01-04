@@ -1,10 +1,10 @@
 "use client"
 
 import useSWR from "swr";
-import { Skeleton } from "@/components/ui/skeleton";
+import { fetcher } from "@/lib/utils";
 import type { RegistryStats } from "@/app/api/v1/stats/route";
 
-const fetcher = (url: string) => fetch(url).then((res) => res.json());
+import { Skeleton } from "@/components/ui/skeleton";
 
 export const StatsSectionSkeleton = () => {
   return (
