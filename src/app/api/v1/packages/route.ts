@@ -1,9 +1,9 @@
 import { z } from "zod";
 import { safeNumber } from "@/lib/utils";
 import { NextResponse } from "next/server";
-import { Pagination } from "@/lib/interfaces";
 import { PgColumn } from "drizzle-orm/pg-core";
 import { packageNameRegex } from "@/lib/regex";
+import { Pagination } from "@/types/pagination";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 import { packages, users, package_versions } from "@/db/schema";
 import { and, asc, desc, eq, ilike, or, sql, SQL } from "drizzle-orm";
@@ -12,7 +12,7 @@ import {
   PackageVerified,
   PackageCategory,
   PackageDeprecated,
-} from "@/lib/enums";
+} from "@/types/package-filter";
 
 export type GetPackagesResult = Awaited<ReturnType<typeof getPackages>>;
 

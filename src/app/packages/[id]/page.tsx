@@ -4,7 +4,7 @@ import { useParams } from "next/navigation";
 import { useState } from "react";
 import { formatDownloads } from "@/lib/utils";
 import useSWR from "swr";
-import { fetcher } from "@/lib/fetcher";
+import { fetcher } from "@/lib/utils";
 
 import Link from "next/link";
 import { format } from "date-fns";

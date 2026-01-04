@@ -1,10 +1,9 @@
 "use client";
 
-import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { fetcher } from "@/lib/fetcher";
+import { fetcher } from "@/lib/utils";
+import { useParams } from "next/navigation";
 
-import Image from "next/image";
 import { Skeleton } from "@/components/ui/skeleton";
 import PackageList from "@/components/package-list";
 import { GetUserResult } from "@/app/api/v1/users/[id]/route";
@@ -56,13 +55,6 @@ const ProfilePage = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex items-center gap-4 mb-4">
-        <Image
-          width={64}
-          height={64}
-          alt={userProfile.display_name}
-          className="w-16 h-16 rounded-full"
-          src={userProfile.avatar_url || "https://i.pravatar.cc/150?img=5"}
-        />
         <div>
           <h1 className="text-2xl font-bold">{userProfile.display_name}</h1>
         </div>
@@ -73,4 +65,3 @@ const ProfilePage = () => {
 };
 
 export default ProfilePage;
-
