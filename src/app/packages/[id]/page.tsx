@@ -1,10 +1,10 @@
 "use client";
 
-import { useParams } from "next/navigation";
-import { useState } from "react";
-import { formatDownloads } from "@/lib/utils";
 import useSWR from "swr";
+import { useState } from "react";
 import { fetcher } from "@/lib/utils";
+import { useParams } from "next/navigation";
+import { formatDownloads } from "@/lib/utils";
 
 import Link from "next/link";
 import { format } from "date-fns";
@@ -142,8 +142,6 @@ const PackagePage = () => {
       console.error("copy failed", e);
     }
   };
-
-  // Removed getAuditIcon and formatAuditAction functions here.
 
   if (isLoading) {
     return (
