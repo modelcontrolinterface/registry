@@ -1,6 +1,6 @@
 import path from "path";
 import { promises as fs } from "fs";
-import MarkdownPageRenderer from "@/components/markdown-page-renderer";
+import MarkdownPageRenderer from "@/components/markdown-renderer";
 
 export default async function UsagePolicyPage() {
   const markdownPath = path.join(process.cwd(), "src", "content", "usage-policy.md");
