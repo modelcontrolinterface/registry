@@ -25,11 +25,10 @@ import {
   ShieldCheck,
   AlertTriangle,
 } from "lucide-react";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Separator } from "@/components/ui/separator";
-import PackageBadge from "@/components/package-badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -215,7 +214,7 @@ const PackagePage = () => {
               </div>
               <div className="flex flex-wrap gap-2">
                 {pkg.categories.map((category) => (
-                  <PackageBadge key={category} category={category} />
+                  <Badge key={category}>{category}</Badge>
                 ))}
               </div>
               <p className="mt-1 text-muted-foreground">

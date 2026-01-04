@@ -2,8 +2,8 @@ import { formatDownloads } from "@/lib/utils";
 import { formatDistanceToNowStrict } from "date-fns"
 
 import Link from "next/link";
+import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton";
-import PackageBadge from "@/components/package-badge"
 import { Download, Calendar, Server, BadgeCheck, OctagonAlert } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
@@ -71,7 +71,7 @@ const PackageCard = ({
               </div>
               <div className="flex gap-2">
                 {categories.map((category) => (
-                  <PackageBadge key={category} category={category} />
+                  <Badge key={category}>{category}</Badge>
                 ))}
               </div>
             </div>
