@@ -1,6 +1,6 @@
+import crypto from "crypto";
 import { twMerge } from "tailwind-merge";
 import { clsx, type ClassValue } from "clsx";
-import crypto from "crypto";
 
 export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs));
@@ -88,27 +88,16 @@ export const compareSemanticVersions = (v1: string, v2: string): number => {
   return 0;
 };
 
-/**
- * Hash a token for secure storage
- */
 export function hashToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
 
-/**
- * Generate a new secure API token (not JWT)
- */
 export function generateApiToken(): { token: string; hashedToken: string } {
-  const token = crypto.randomBytes(32).toString("base64url"); // Generate a random, URL-safe base64 string
+  const token = crypto.randomBytes(32).toString("base64url");
   const hashedToken = hashToken(token);
   return { token, hashedToken };
 }
 
-/**
- * Verify an API token by comparing its hash with a stored hash
- * This function assumes you retrieve the storedHashedToken from your database
- * based on some identifier (e.g., token ID or user ID)
- */
 export function verifyApiToken(
   providedToken: string,
   storedHashedToken: string,
@@ -116,4 +105,3 @@ export function verifyApiToken(
   const hashedProvidedToken = hashToken(providedToken);
   return hashedProvidedToken === storedHashedToken;
 }
-
