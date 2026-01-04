@@ -17,12 +17,10 @@ interface PackageListProps {
   ownerId?: string;
 }
 
-export const PackageListSkeleton = ({
-  pagination,
-}: ReturnType<typeof useSearch>) => {
+export const PackageListSkeleton = () => {
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
-      {Array.from({ length: pagination?.limit ?? 12 }).map((_, i) => (
+      {Array.from({ length: 12 }).map((_, i) => (
         <PackageCardSkeleton key={i} />
       ))}
     </div>
@@ -130,7 +128,7 @@ const PackageList = ({ ownerId }: PackageListProps) => {
       {error && <div className="destructive mb-4">Error: {error}</div>}
 
       {initialLoad || loading ? (
-        <PackageListSkeleton pagination={pagination} />
+        <PackageListSkeleton />
       ) : packages.length ? (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 my-6">
           {packages.map((pkg) => (
@@ -143,12 +141,12 @@ const PackageList = ({ ownerId }: PackageListProps) => {
         </div>
       )}
 
-      {pagination && pagination.totalPages > 1 && (
+      {pagination && pagination.total_pages > 1 && (
         <div className="flex justify-center mt-6">
           <Pagination
             page={page}
             onPageChange={handlePageChange}
-            totalPages={pagination.totalPages}
+            totalPages={pagination.total_pages}
           />
         </div>
       )}
