@@ -81,7 +81,7 @@ interface Package {
   downloads: number;
 }
 
-interface Stats {
+interface Meta {
   total_versions: number;
   total_downloads: number;
   max_version: string | null;
@@ -96,7 +96,7 @@ interface GetPackageResultExplicit {
   package: Package;
   owners: User[];
   versions: Record<string, PackageVersion>;
-  stats: Stats;
+  meta: Meta;
 }
 
 const PackagePage = () => {
@@ -192,7 +192,7 @@ const PackagePage = () => {
     );
   }
 
-  const { package: pkg, owners, versions, stats } = data;
+  const { package: pkg, owners, versions, meta } = data;
 
   return (
     <div className="container mx-auto flex flex-col gap-8 px-4 py-8">
@@ -238,7 +238,7 @@ const PackagePage = () => {
               <TabsTrigger value="readme">Readme</TabsTrigger>
               <TabsTrigger value="changelog">Changelog</TabsTrigger>
               <TabsTrigger value="versions">
-                Versions ({stats.total_versions})
+                Versions ({meta.total_versions})
               </TabsTrigger>
               <TabsTrigger value="contributors">
                 Authors ({currentDisplayVersion?.authors?.length || 0})
@@ -298,13 +298,13 @@ const PackagePage = () => {
                             {v.yanked && (
                               <Badge variant="destructive">Yanked</Badge>
                             )}
-                            {v.version === stats.max_version && (
+                            {v.version === meta.max_version && (
                               <Badge variant="secondary">Max Version</Badge>
                             )}
-                            {v.version === stats.newest_version && (
+                            {v.version === meta.newest_version && (
                               <Badge variant="secondary">Newest</Badge>
                             )}
-                            {v.version === stats.max_stable_version && (
+                            {v.version === meta.max_stable_version && (
                               <Badge variant="secondary">Max Stable</Badge>
                             )}
                           </div>
@@ -469,7 +469,7 @@ const PackagePage = () => {
                     <Download className="h-4 w-4" />
                     <span>Downloads</span>
                   </span>
-                  <span>{formatDownloads(Number(pkg.downloads))}</span>
+                  <span>{formatDownloads(Number(currentDisplayVersion.downloads))}</span>
                 </div>
 
                 <div className="flex justify-between">
