@@ -5,6 +5,7 @@ import { useState } from "react";
 import { fetcher } from "@/lib/utils";
 import { useParams } from "next/navigation";
 import { formatDownloads } from "@/lib/utils";
+import { authorRegex } from "@/lib/regex"; // Import authorRegex
 
 import Link from "next/link";
 import { format } from "date-fns";
@@ -60,7 +61,7 @@ interface PackageVersion {
   created_at: Date;
   updated_at: Date;
   publisher?: User;
-  authors?: { name: string; email?: string; url?: string }[];
+  authors?: string[]; // Changed to string[]
 }
 
 interface Package {
@@ -98,6 +99,20 @@ interface GetPackageResultExplicit {
   versions: Record<string, PackageVersion>;
   meta: Meta;
 }
+
+// Function to parse author string
+const parseAuthorString = (authorString: string) => {
+  const match = authorRegex.exec(authorString);
+  if (!match) {
+    return { name: authorString };
+  }
+  const [, name, email, url] = match;
+  return {
+    name: name.trim(),
+    email: email?.trim(),
+    url: url?.trim(),
+  };
+};
 
 const PackagePage = () => {
   const params = useParams();
@@ -371,34 +386,37 @@ const PackagePage = () => {
             </TabsContent>
 
             <TabsContent value="contributors" className="space-y-2">
-              {currentDisplayVersion?.authors?.map((author, index) => (
-                <Card key={index}>
-                  <CardContent className="space-y-2">
-                    <div>
-                      <div className="flex items-center gap-4">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2">
-                            <span className="font-semibold">{author.name}</span>
-                          </div>
-                          <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
-                            {author.email && <span>{author.email}</span>}
-                            {author.url && (
-                              <Link
-                                href={author.url}
-                                className="text-primary hover:underline"
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                {author.url}
-                              </Link>
-                            )}
+              {currentDisplayVersion?.authors?.map((authorString, index) => {
+                const author = parseAuthorString(authorString);
+                return (
+                  <Card key={index}>
+                    <CardContent className="space-y-2">
+                      <div>
+                        <div className="flex items-center gap-4">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-semibold">{author.name}</span>
+                            </div>
+                            <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
+                              {author.email && <span>{author.email}</span>}
+                              {author.url && (
+                                <Link
+                                  href={author.url}
+                                  className="text-primary hover:underline"
+                                  target="_blank"
+                                  rel="noreferrer"
+                                >
+                                  {author.url}
+                                </Link>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+                    </CardContent>
+                  </Card>
+                );
+              })}
               {(!currentDisplayVersion || currentDisplayVersion.authors?.length === 0) && (
                 <Card>
                   <CardContent className="space-y-4">
