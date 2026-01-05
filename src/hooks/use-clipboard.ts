@@ -17,7 +17,6 @@ export function useClipboard(timeout = 2000) {
         .catch((err) => {
           setError(err);
           setCopied(false);
-          console.error("Failed to copy text: ", err);
           setTimeout(() => setError(null), timeout);
         });
     },
