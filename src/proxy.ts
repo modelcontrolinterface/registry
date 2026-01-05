@@ -58,13 +58,13 @@ export const proxy = async (request: NextRequest) => {
   if (token) {
     try {
       const user = await authenticateWithToken(token);
+
       if (user) {
         userId = user.id;
       } else {
         authError = "Invalid API token";
       }
     } catch (error) {
-      console.error("Token authentication error:", error);
       authError = "An error occurred during token authentication";
     }
   } else {
@@ -72,11 +72,11 @@ export const proxy = async (request: NextRequest) => {
       const {
         data: { user },
       } = await supabase.auth.getUser();
+
       if (user) {
         userId = user.id;
       }
     } catch (error) {
-      console.error("Session authentication error:", error);
       authError = "An error occurred during session authentication";
     }
   }
