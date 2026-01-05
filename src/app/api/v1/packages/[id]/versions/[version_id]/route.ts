@@ -112,7 +112,6 @@ export const GET = async (
           publisher: {
             columns: {
               id: true,
-              avatar_url: true,
               email: true,
               display_name: true,
             },

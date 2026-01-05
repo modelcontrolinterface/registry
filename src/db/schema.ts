@@ -38,7 +38,6 @@ export const users = pgTable(
   "users",
   {
     id: uuid("id").primaryKey().defaultRandom(),
-    avatar_url: text("avatar_url").notNull(),
     email: varchar("email", { length: 150 }).notNull().unique(),
     display_name: varchar("display_name", { length: 100 }).notNull(),
     created_at: timestamp("created_at", { withTimezone: true })
@@ -85,7 +84,9 @@ export const packages = pgTable(
       .notNull()
       .default(sql`ARRAY[]::text[]`),
     homepage: text("homepage"),
+    // homepage_url: text("homepage_url"),
     repository: text("repository"),
+    // repository_url: text("repository_url"),
     default_version: varchar("default_version", { length: 100 }),
     primary_owner_id: uuid("primary_owner")
       .notNull()
@@ -210,13 +211,15 @@ export const package_versions = pgTable(
       .default(sql`ARRAY[]::text[]`),
     license: varchar("license", { length: 100 }),
     license_file: text("license_file"),
+    // license_url: text("license_url"),
     is_yanked: boolean("is_yanked").notNull().default(false),
     yank_message: varchar("yank_message", { length: 200 }),
-    // readme_url: text("readme_url"),
-    // changelog_url: text("changelog_url"),
     readme: text("readme"),
+    // readme_url: text("readme_url"),
     changelog: text("changelog"),
+    // changelog_url: text("changelog_url"),
     tarball: text("tarball").notNull(),
+    // tarball_url: text("tarball_url").notNull(),
     size: bigint("size", { mode: "number" }).notNull(),
     digest: varchar("digest", { length: 100 }).notNull(),
     abi_version: varchar("abi_version", { length: 50 }).notNull(),

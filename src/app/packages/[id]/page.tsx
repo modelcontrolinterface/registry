@@ -37,7 +37,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface User {
   id: string;
   display_name: string;
-  avatar_url: string | null;
 }
 
 interface PackageVersion {

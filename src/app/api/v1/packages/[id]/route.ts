@@ -38,7 +38,6 @@ const getPackage = async (id: string) => {
             publisher: {
               columns: {
                 id: true,
-                avatar_url: true,
                 email: true,
                 display_name: true,
               },
@@ -49,7 +48,6 @@ const getPackage = async (id: string) => {
         primary_owner: {
           columns: {
             id: true,
-            avatar_url: true,
             email: true,
             display_name: true,
           },
@@ -59,7 +57,6 @@ const getPackage = async (id: string) => {
             user: {
               columns: {
                 id: true,
-                avatar_url: true,
                 email: true,
                 display_name: true,
               },
