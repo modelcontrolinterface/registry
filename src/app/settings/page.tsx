@@ -1,54 +1,30 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { createClient } from "@/lib/supabase/client";
-import { User } from "@supabase/supabase-js";
-import { zodResolver } from "@hookform/resolvers/zod";
-import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { toast } from "sonner";
-import { useRouter } from "next/navigation";
+import { useForm } from "react-hook-form";
+import { useState, useEffect } from "react";
+import { User } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase/client";
+import { zodResolver } from "@hookform/resolvers/zod";
 
-import { Button } from "@/components/ui/button";
-import {
-  Form,
-  FormControl,
-  FormDescription,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
-import { Input } from "@/components/ui/input";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
-import { Skeleton } from "@/components/ui/skeleton";
-import { Textarea } from "@/components/ui/textarea";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 import useSWR, { mutate } from "swr";
 import { fetcher } from "@/lib/utils";
 import { CalendarIcon } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
+import { Field, FieldLabel, FieldError, } from "@/components/ui/field";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import {
-  Field,
-  FieldLabel,
-  FieldError,
-} from "@/components/ui/field";
+  Card,
+  CardTitle,
+  CardHeader,
+  CardContent,
+  CardDescription,
+} from "@/components/ui/card";
 import {
   Dialog,
   DialogTitle,
@@ -80,7 +56,6 @@ const profileFormSchema = z.object({
 });
 
 const ProfileSettings = () => {
-  const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [userLoading, setUserLoading] = useState(true);
 
@@ -152,7 +127,7 @@ const ProfileSettings = () => {
 
     if (response.ok) {
       toast.success("Profile updated successfully.");
-      mutate(`/api/v1/users/${user.id}`); // Revalidate profile data after update
+      mutate(`/api/v1/users/${user.id}`);
     } else {
       const errorData = await response.json();
       toast.error(errorData.message || "Failed to update profile.");
@@ -228,7 +203,6 @@ function ApiTokenSettings() {
         } = await supabase.auth.getUser();
         setUser(authUser);
       } catch (error) {
-        console.error("Error loading user:", error);
         setUser(null);
       } finally {
         setUserLoading(false);

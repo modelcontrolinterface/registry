@@ -5,7 +5,7 @@ import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
 export const GET = async (
   _: Request,
-  { params }: { params: { id: string; version_id: string } },
+  { params }: { params: Promise<{ id: string; version_id: string }> },
 ) => {
   try {
     const { id: package_id, version_id } = await params;

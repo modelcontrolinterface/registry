@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { api_tokens } from "@/db/schema";
-import { NextResponse } from "next/server";
-import { generateApiToken, hashToken } from "@/lib/utils";
+import { NextResponse, NextRequest } from "next/server";
+import { generateApiToken } from "@/lib/utils";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
 const createTokenSchema = z.object({
@@ -10,8 +10,8 @@ const createTokenSchema = z.object({
     .string()
     .min(1, "Token name is required")
     .max(100, "Token name must be at most 100 characters"),
-  expires_at: z.iso
-    .date()
+  expires_at: z
+    .string()
     .optional()
     .refine((val) => {
       if (!val) return true;
@@ -29,15 +29,19 @@ const createTokenSchema = z.object({
     }, "Expiration date must be at least tomorrow's date"),
 });
 
-export const POST = async (request: Request) => {
+export const POST = async (
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) => {
   try {
-    const { rls, supabase } = await createDrizzleSupabaseClient();
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const { id: user_id_from_path } = await params;
+    const authenticatedUserId = request.headers.get("x-user-id");
 
-    if (userError || !userData?.user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (authenticatedUserId !== user_id_from_path) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
+    const { rls } = await createDrizzleSupabaseClient();
     const body = await request.json();
     const validation = createTokenSchema.safeParse(body);
 
@@ -57,7 +61,7 @@ export const POST = async (request: Request) => {
         .where(
           and(
             eq(api_tokens.name, name),
-            eq(api_tokens.user_id, userData.user.id),
+            eq(api_tokens.user_id, user_id_from_path),
           ),
         )
         .limit(1),
@@ -69,38 +73,21 @@ export const POST = async (request: Request) => {
       );
     }
 
-    const tokenRecords = await rls((db) =>
-      db
-        .insert(api_tokens)
-        .values({
-          name,
-          user_id: userData.user.id,
-          token_hash: "temp",
-          expires_at: expires_at ? new Date(expires_at) : null,
-        })
-        .returning({ id: api_tokens.id }),
-    );
-
-    const [tokenRecord] = tokenRecords;
-
     const { token, hashedToken } = generateApiToken();
+
     await rls((db) =>
-      db
-        .update(api_tokens)
-        .set({ token_hash: hashedToken })
-        .where(eq(api_tokens.id, tokenRecord.id)),
+      db.insert(api_tokens).values({
+        name,
+        user_id: user_id_from_path,
+        token_hash: hashedToken,
+        expires_at: expires_at ? new Date(expires_at) : null,
+      }),
     );
 
     return NextResponse.json(
       {
         message: "Token created successfully",
-        token: {
-          id: tokenRecord.id,
-          name,
-          token,
-          created_at: new Date(),
-          expires_at: expires_at ? new Date(expires_at) : null,
-        },
+        token: token,
       },
       { status: 201 },
     );
@@ -112,15 +99,19 @@ export const POST = async (request: Request) => {
   }
 };
 
-export const GET = async () => {
+export const GET = async (
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) => {
   try {
-    const { rls, supabase } = await createDrizzleSupabaseClient();
-    const { data: userData, error: userError } = await supabase.auth.getUser();
+    const { id: user_id_from_path } = await params;
+    const authenticatedUserId = request.headers.get("x-user-id");
 
-    if (userError || !userData?.user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (authenticatedUserId !== user_id_from_path) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
+    const { rls } = await createDrizzleSupabaseClient();
     const tokens = await rls((db) =>
       db
         .select({
@@ -130,7 +121,7 @@ export const GET = async () => {
           expires_at: api_tokens.expires_at,
         })
         .from(api_tokens)
-        .where(eq(api_tokens.user_id, userData.user.id)),
+        .where(eq(api_tokens.user_id, user_id_from_path)),
     );
 
     return NextResponse.json(

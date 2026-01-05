@@ -1,29 +1,26 @@
 import { eq, and } from "drizzle-orm";
 import { api_tokens } from "@/db/schema";
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
 export const DELETE = async (
-  _: Request,
-  { params }: { params: Promise<{ id: string }> },
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string; tokenId: string }> },
 ) => {
   try {
-    const { id: token_id } = await params;
-    const { rls, supabase } = await createDrizzleSupabaseClient();
+    const { id: user_id, tokenId: token_id } = await params;
+    const authenticatedUserId = request.headers.get("x-user-id");
 
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-    if (userError || !userData?.user) {
-      return NextResponse.json({ message: "Unauthorized" }, { status: 401 });
+    if (authenticatedUserId !== user_id) {
+      return NextResponse.json({ message: "Forbidden" }, { status: 403 });
     }
 
+    const { rls } = await createDrizzleSupabaseClient();
     const deletedTokens = await rls((db) =>
       db
         .delete(api_tokens)
         .where(
-          and(
-            eq(api_tokens.id, token_id),
-            eq(api_tokens.user_id, userData.user.id),
-          ),
+          and(eq(api_tokens.id, token_id), eq(api_tokens.user_id, user_id)),
         )
         .returning(),
     );
