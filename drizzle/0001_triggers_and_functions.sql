@@ -4,13 +4,11 @@ DECLARE
     github_username TEXT;
     github_email TEXT;
     github_display_name TEXT;
-    github_avatar TEXT;
 BEGIN
     IF NEW.raw_app_meta_data->>'provider' = 'github' THEN
         github_username := NEW.raw_user_meta_data->>'user_name';
         github_email := NEW.raw_user_meta_data->>'email';
         github_display_name := NEW.raw_user_meta_data->>'name';
-        github_avatar := NEW.raw_user_meta_data->>'avatar_url';
 
         IF github_email IS NULL OR github_email = '' THEN
             RAISE EXCEPTION 'GitHub email is required';
@@ -24,12 +22,11 @@ BEGIN
             github_username := split_part(github_email, '@', 1);
         END IF;
 
-        INSERT INTO public.users (id, email, display_name, avatar_url)
-        VALUES (NEW.id, github_email, github_display_name, github_avatar)
+        INSERT INTO public.users (id, email, display_name)
+        VALUES (NEW.id, github_email, github_display_name)
         ON CONFLICT (id) DO UPDATE SET
             email = EXCLUDED.email,
             display_name = EXCLUDED.display_name,
-            avatar_url = EXCLUDED.avatar_url,
             updated_at = NOW();
     END IF;
 
