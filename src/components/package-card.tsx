@@ -4,7 +4,7 @@ import { formatDistanceToNowStrict } from "date-fns"
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton";
-import { Download, Calendar, Server, BadgeCheck, OctagonAlert } from "lucide-react"
+import { Download, Calendar, BadgeCheck, OctagonAlert } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 
 export interface PackageCardProps {
@@ -22,7 +22,6 @@ export interface PackageCardProps {
 export const PackageCardSkeleton = () => (
   <div className="flex flex-col space-y-3 border rounded-md p-4">
     <div className="flex items-center space-x-4">
-      <Skeleton className="h-12 w-12 rounded-full" />
       <div className="space-y-2 flex-1">
         <Skeleton className="h-4 w-3/4" />
         <Skeleton className="h-4 w-1/2" />
@@ -56,11 +55,6 @@ const PackageCard = ({
       <Card className="w-full h-full flex flex-col justify-between transition-all duration-200 hover:shadow-lg hover:border-primary">
         <CardHeader className="space-y-2">
           <div className="flex items-start gap-3">
-            <div className="w-14 h-14 rounded-2xl overflow-hidden">
-              <div className="h-full w-auto aspect-square rounded bg-background flex items-center justify-center">
-                <Server className="w-6 h-6 text-muted-foreground" />
-              </div>
-            </div>
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 mb-1 flex-wrap">
                 <CardTitle className="text-lg group-hover:text-primary transition-colors truncate">
