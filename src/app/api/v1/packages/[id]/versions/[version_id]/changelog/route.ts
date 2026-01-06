@@ -18,16 +18,16 @@ export const GET = async (
           eq(package_versions.version, version_id),
         ),
         columns: {
-          changelog: true,
+          changelog_url: true,
         },
       }),
     );
 
-    if (!versionData || !versionData.changelog) {
+    if (!versionData || !versionData.changelog_url) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    const response = await fetch(versionData.changelog);
+    const response = await fetch(versionData.changelog_url);
     if (!response.ok) {
       throw new Error(
         `Failed to fetch changelog content from URL: ${response.statusText}`,

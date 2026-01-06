@@ -18,17 +18,17 @@ export const GET = async (
           eq(package_versions.package_id, package_id),
         ),
         columns: {
-          tarball: true,
+          tarball_url: true,
           downloads: true,
         },
       }),
     );
 
-    if (!versionData || !versionData.tarball) {
+    if (!versionData || !versionData.tarball_url) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    const tarballResponse = await fetch(versionData.tarball);
+    const tarballResponse = await fetch(versionData.tarball_url);
     if (!tarballResponse.ok) {
       throw new Error(
         `Failed to fetch tarball from URL: ${tarballResponse.statusText}`,
@@ -50,7 +50,7 @@ export const GET = async (
         ),
     );
 
-    const urlParts = versionData.tarball.split("/");
+    const urlParts = versionData.tarball_url.split("/");
     const filename = urlParts[urlParts.length - 1];
 
     const headers: Record<string, string> = {

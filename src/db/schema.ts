@@ -83,10 +83,8 @@ export const packages = pgTable(
       .array()
       .notNull()
       .default(sql`ARRAY[]::text[]`),
-    homepage: text("homepage"),
-    // homepage_url: text("homepage_url"),
-    repository: text("repository"),
-    // repository_url: text("repository_url"),
+    homepage_url: text("homepage_url"),
+    repository_url: text("repository_url"),
     default_version: varchar("default_version", { length: 100 }),
     primary_owner_id: uuid("primary_owner")
       .notNull()
@@ -171,9 +169,9 @@ export const packages = pgTable(
            )
         )
         AND (
-          ${t.primary_owner_id} = (SELECT primary_owner FROM packages WHERE id = ${t.id})
+          ${t.primary_owner_id} = (SELECT primary_owner_id FROM packages WHERE id = ${t.id})
           OR
-          (SELECT primary_owner FROM packages WHERE id = ${t.id}) = ${authUid}
+          (SELECT primary_owner_id FROM packages WHERE id = ${t.id}) = ${authUid}
         )
         AND ${t.id} = (SELECT id FROM packages WHERE id = ${t.id})
         AND ${t.created_at} = (SELECT created_at FROM packages WHERE id = ${t.id})
@@ -210,16 +208,12 @@ export const package_versions = pgTable(
       .notNull()
       .default(sql`ARRAY[]::text[]`),
     license: varchar("license", { length: 100 }),
-    license_file: text("license_file"),
-    // license_url: text("license_url"),
+    license_url: text("license_url"),
     is_yanked: boolean("is_yanked").notNull().default(false),
     yank_message: varchar("yank_message", { length: 200 }),
-    readme: text("readme"),
-    // readme_url: text("readme_url"),
-    changelog: text("changelog"),
-    // changelog_url: text("changelog_url"),
-    tarball: text("tarball").notNull(),
-    // tarball_url: text("tarball_url").notNull(),
+    readme_url: text("readme_url"),
+    changelog_url: text("changelog_url"),
+    tarball_url: text("tarball_url").notNull(),
     size: bigint("size", { mode: "number" }).notNull(),
     digest: varchar("digest", { length: 100 }).notNull(),
     abi_version: varchar("abi_version", { length: 50 }).notNull(),
@@ -253,7 +247,7 @@ export const package_versions = pgTable(
     ),
     check(
       "package_versions_license_specified",
-      sql`${t.license} IS NOT NULL OR ${t.license_file} IS NOT NULL`,
+      sql`${t.license} IS NOT NULL OR ${t.license_url} IS NOT NULL`,
     ),
     check(
       "package_versions_yanked_consistency",
@@ -281,7 +275,7 @@ export const package_versions = pgTable(
       withCheck: sql`
         ${authUid} = ${t.publisher_id} 
         AND EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id} AND (
-          p.primary_owner = ${authUid} OR EXISTS (
+          p.primary_owner_id = ${authUid} OR EXISTS (
             SELECT 1 FROM package_owners po
             WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
           )
@@ -293,7 +287,7 @@ export const package_versions = pgTable(
       to: authenticatedRole,
       using: sql`
         EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
-          AND (p.primary_owner = ${authUid} OR EXISTS (
+          AND (p.primary_owner_id = ${authUid} OR EXISTS (
             SELECT 1 FROM package_owners po
             WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
           ))
@@ -301,7 +295,7 @@ export const package_versions = pgTable(
       `,
       withCheck: sql`
         EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
-          AND (p.primary_owner = ${authUid} OR EXISTS (
+          AND (p.primary_owner_id = ${authUid} OR EXISTS (
               SELECT 1 FROM package_owners po
               WHERE po.package_id = ${t.package_id} AND po.user_id = ${authUid}
           ))
@@ -311,7 +305,7 @@ export const package_versions = pgTable(
         AND ${t.digest} = (SELECT digest FROM package_versions WHERE id = ${t.id})
         AND ${t.version} = (SELECT version FROM package_versions WHERE id = ${t.id})
         AND ${t.license} = (SELECT license FROM package_versions WHERE id = ${t.id})
-        AND ${t.tarball} = (SELECT tarball FROM package_versions WHERE id = ${t.id})
+        AND ${t.tarball_url} = (SELECT tarball_url FROM package_versions WHERE id = ${t.id})
         AND ${t.downloads} = (SELECT downloads FROM package_versions WHERE id = ${t.id})
         AND ${t.created_at} = (SELECT created_at FROM package_versions WHERE id = ${t.id})
         AND ${t.package_id} = (SELECT package_id FROM package_versions WHERE id = ${t.id})
@@ -357,7 +351,7 @@ export const package_owners = pgTable(
       to: authenticatedRole,
       withCheck: sql`
         EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
-          AND p.primary_owner = ${authUid}
+          AND p.primary_owner_id = ${authUid}
         )
       `,
     }),
@@ -366,7 +360,7 @@ export const package_owners = pgTable(
       to: authenticatedRole,
       using: sql`
         EXISTS (SELECT 1 FROM packages p WHERE p.id = ${t.package_id}
-          AND p.primary_owner = ${authUid}
+          AND p.primary_owner_id = ${authUid}
         )
         OR ${t.user_id} = ${authUid}
       `,

@@ -18,16 +18,16 @@ export const GET = async (
           eq(package_versions.version, version_id),
         ),
         columns: {
-          readme: true,
+          readme_url: true,
         },
       }),
     );
 
-    if (!versionData || !versionData.readme) {
+    if (!versionData || !versionData.readme_url) {
       return new NextResponse("Not Found", { status: 404 });
     }
 
-    const response = await fetch(versionData.readme);
+    const response = await fetch(versionData.readme_url);
     if (!response.ok) {
       throw new Error(
         `Failed to fetch readme content from URL: ${response.statusText}`,

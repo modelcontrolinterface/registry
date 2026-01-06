@@ -63,7 +63,7 @@ const createPackageVersionSchema = z.object({
     )
     .min(1, "Authors is required"),
   license: z.string().optional(),
-  license_file: z
+  license_url: z
     .instanceof(File)
     .optional()
     .refine(
@@ -74,7 +74,7 @@ const createPackageVersionSchema = z.object({
       (file) => !file || ALLOWED_PLAINTEXT_MIMES.includes(file.type),
       `License file must be a markdown file (${ALLOWED_PLAINTEXT_MIMES.join(", ")})`,
     ),
-  readme: z
+  readme_url: z
     .instanceof(File)
     .optional()
     .refine(
@@ -85,7 +85,7 @@ const createPackageVersionSchema = z.object({
       (file) => !file || ALLOWED_MARKDOWN_MIMES.includes(file.type),
       `README file must be a markdown file (${ALLOWED_MARKDOWN_MIMES.join(", ")})`,
     ),
-  changelog: z
+  changelog_url: z
     .instanceof(File)
     .optional()
     .refine(
@@ -96,7 +96,7 @@ const createPackageVersionSchema = z.object({
       (file) => !file || ALLOWED_MARKDOWN_MIMES.includes(file.type),
       `Changelog file must be a markdown file (${ALLOWED_MARKDOWN_MIMES.join(", ")})`,
     ),
-  tarball: z
+  tarball_url: z
     .instanceof(File)
     .refine(
       (file) => file.size <= MAX_TARBALL_SIZE,
@@ -165,10 +165,10 @@ export const POST = async (
     const version = formData.get("version") as string;
     const authorsString = formData.get("authors") as string;
     const license = formData.get("license") as string | undefined;
-    const license_file_file = formData.get("license_file") as File | undefined;
-    const readme_file = formData.get("readme") as File | undefined;
-    const changelog_file = formData.get("changelog") as File | undefined;
-    const tarball_file = formData.get("tarball") as File;
+    const license_url_file = formData.get("license_url") as File | undefined;
+    const readme_file = formData.get("readme_url") as File | undefined;
+    const changelog_file = formData.get("changelog_url") as File | undefined;
+    const tarball_file = formData.get("tarball_url") as File;
     const abi_version = formData.get("abi_version") as string;
 
     let parsedAuthors: any[] = [];
@@ -185,10 +185,10 @@ export const POST = async (
       version,
       authors: parsedAuthors,
       license,
-      license_file: license_file_file,
-      readme: readme_file,
-      changelog: changelog_file,
-      tarball: tarball_file,
+      license_url: license_url_file,
+      readme_url: readme_file,
+      changelog_url: changelog_file,
+      tarball_url: tarball_file,
       abi_version,
     });
 
@@ -203,11 +203,11 @@ export const POST = async (
       version: validatedVersion,
       authors: validatedAuthors,
       license: validatedLicense,
-      license_file: validatedLicenseFile,
-      readme: validatedReadme,
-      changelog: validatedChangelog,
+      license_url: validatedLicenseFile,
+      readme_url: validatedReadme,
+      changelog_url: validatedChangelog,
       abi_version: validatedAbiVersion,
-      tarball: validatedTarball,
+      tarball_url: validatedTarball,
     } = validation.data;
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -333,12 +333,12 @@ export const POST = async (
           publisher_id: userData.user.id,
           authors: validatedAuthors.map(formatAuthorToString),
           license: validatedLicense ?? null,
-          license_file: licenseFileUrl,
-          readme: readmeUrl,
-          changelog: changelogUrl,
+          license_url: licenseFileUrl,
+          readme_url: readmeUrl,
+          changelog_url: changelogUrl,
           abi_version: validatedAbiVersion,
           digest: tarballDigest,
-          tarball: tarballUrl,
+          tarball_url: tarballUrl,
         })
         .returning(),
     );

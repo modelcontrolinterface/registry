@@ -14,6 +14,22 @@ const getPackage = async (id: string) => {
   const packageData = await rls((db) =>
     db.query.packages.findFirst({
       where: eq(packages.id, id),
+      columns: {
+        id: true,
+        name: true,
+        description: true,
+        categories: true,
+        keywords: true,
+        homepage_url: true,
+        repository_url: true,
+        default_version: true,
+        primary_owner_id: true,
+        is_verified: true,
+        is_deprecated: true,
+        deprecation_message: true,
+        created_at: true,
+        updated_at: true,
+      },
       with: {
         versions: {
           columns: {
@@ -21,14 +37,14 @@ const getPackage = async (id: string) => {
             version: true,
             authors: true,
             license: true,
-            license_file: true,
+            license_url: true,
             is_yanked: true,
             yank_message: true,
-            readme: true,
-            changelog: true,
+            readme_url: true,
+            changelog_url: true,
             size: true,
             digest: true,
-            tarball: true,
+            tarball_url: true,
             abi_version: true,
             downloads: true,
             created_at: true,
@@ -104,8 +120,8 @@ const getPackage = async (id: string) => {
       description: packageData.description,
       categories: packageData.categories,
       keywords: packageData.keywords,
-      homepage: packageData.homepage,
-      repository: packageData.repository,
+      homepage_url: packageData.homepage_url,
+      repository_url: packageData.repository_url,
       default_version: packageData.default_version,
       primary_owner: packageData.primary_owner,
       is_verified: packageData.is_verified,
@@ -148,8 +164,8 @@ const updatePackageSchema = z.object({
     )
     .max(5, "You can have up to 5 keywords")
     .optional(),
-  homepage: z.url("Homepage must be a valid URL").optional(),
-  repository: z.url("Repository must be a valid URL").optional(),
+  homepage_url: z.url("Homepage must be a valid URL").optional(),
+  repository_url: z.url("Repository must be a valid URL").optional(),
   default_version: z
     .string()
     .regex(semanticVersionRegex, "Invalid package ID format")
@@ -259,10 +275,10 @@ export const PATCH = async (
       updateData.categories = validation.data.categories;
     if (validation.data.keywords !== undefined)
       updateData.keywords = validation.data.keywords;
-    if (validation.data.homepage !== undefined)
-      updateData.homepage = validation.data.homepage;
-    if (validation.data.repository !== undefined)
-      updateData.repository = validation.data.repository;
+    if (validation.data.homepage_url !== undefined)
+      updateData.homepage_url = validation.data.homepage_url;
+    if (validation.data.repository_url !== undefined)
+      updateData.repository_url = validation.data.repository_url;
     if (validation.data.primary_owner_id !== undefined)
       updateData.primary_owner_id = validation.data.primary_owner_id;
     if (validation.data.is_deprecated !== undefined)

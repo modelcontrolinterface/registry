@@ -181,8 +181,8 @@ const createPackageSchema = z.object({
   description: z
     .string()
     .max(500, "Description must be at most 500 characters long"),
-  homepage: z.url("Homepage must be a valid URL").optional(),
-  repository: z.url("Repository must be a valid URL").optional(),
+  homepage_url: z.url("Homepage must be a valid URL").optional(),
+  repository_url: z.url("Repository must be a valid URL").optional(),
   keywords: z
     .array(
       z.string().max(64, "Each keyword must be at most 64 characters long"),
@@ -284,8 +284,8 @@ export const POST = async (request: Request) => {
       description,
       categories,
       keywords,
-      homepage,
-      repository,
+      homepage_url,
+      repository_url,
     } = validation.data;
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
@@ -315,8 +315,8 @@ export const POST = async (request: Request) => {
           description,
           categories,
           keywords,
-          homepage: homepage ?? null,
-          repository: repository ?? null,
+          homepage_url: homepage_url ?? null,
+          repository_url: repository_url ?? null,
           primary_owner_id: userData.user.id,
         })
         .returning(),

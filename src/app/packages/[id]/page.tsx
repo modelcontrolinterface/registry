@@ -57,14 +57,14 @@ const PackagePage = () => {
 
   const { data: readmeData, isLoading: readmeLoading } = useSWR(
     currentDisplayVersion && packageId
-      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/readme`
+      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/readme_url`
       : null,
     textFetcher
   );
 
   const { data: changelogData, isLoading: changelogLoading } = useSWR(
     currentDisplayVersion && packageId
-      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/changelog`
+      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/changelog_url`
       : null,
     textFetcher
   );
@@ -183,8 +183,8 @@ const PackagePage = () => {
               <Separator />
 
               <div className="space-y-4">
-                <SidebarLinkSection title="Repository" href={pkg.repository} />
-                <SidebarLinkSection title="Homepage" href={pkg.homepage} />
+                <SidebarLinkSection title="Repository" href={pkg.repository_url} />
+                <SidebarLinkSection title="Homepage" href={pkg.homepage_url} />
 
                 <div className="space-y-2">
                   <span className="text-sm font-bold">Owners</span>

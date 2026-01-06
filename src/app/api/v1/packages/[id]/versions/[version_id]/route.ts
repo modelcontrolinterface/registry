@@ -49,7 +49,7 @@ const updatePackageVersionSchema = z.object({
     .string()
     .max(100, "Yank message must be at most 100 characters long")
     .optional(),
-  readme_file: z
+  readme_url: z
     .instanceof(File)
     .optional()
     .refine(
@@ -60,7 +60,7 @@ const updatePackageVersionSchema = z.object({
       (file) => !file || ALLOWED_MARKDOWN_MIMES.includes(file.type),
       `README file must be a markdown file (${ALLOWED_MARKDOWN_MIMES.join(", ")})`,
     ),
-  changelog_file: z
+  changelog_url: z
     .instanceof(File)
     .optional()
     .refine(
@@ -150,16 +150,16 @@ export const PATCH = async (
 
     const license = formData.get("license") as string | undefined;
     const abi_version = formData.get("abi_version") as string | undefined;
-    const readme_file = formData.get("readme_file") as File | undefined;
-    const changelog_file = formData.get("changelog_file") as File | undefined;
+    const readme_url_file = formData.get("readme_url") as File | undefined;
+    const changelog_url_file = formData.get("changelog_url") as File | undefined;
     const is_yanked_string = formData.get("is_yanked") as string | undefined;
     const yank_message = formData.get("yank_message") as string | undefined;
 
     const validation = updatePackageVersionSchema.safeParse({
       license,
       abi_version,
-      readme_file,
-      changelog_file,
+      readme_url_file,
+      changelog_url_file,
       is_yanked: is_yanked_string,
       yank_message,
     });
@@ -172,8 +172,8 @@ export const PATCH = async (
     }
 
     const {
-      readme_file: validatedReadmeFile,
-      changelog_file: validatedChangelogFile,
+      readme_url: validatedReadmeFile,
+      changelog_url: validatedChangelogFile,
       is_yanked: validatedIsYanked,
       yank_message: validatedYankMessage,
     } = validation.data;
@@ -246,7 +246,7 @@ export const PATCH = async (
         `${storagePath}/README.md`,
         validatedReadmeFile,
       );
-      updateData.readme = readmeUrl;
+      updateData.readme_url = readmeUrl;
     }
     if (validatedChangelogFile) {
       const changelogUrl = await uploadFileToStorage(
