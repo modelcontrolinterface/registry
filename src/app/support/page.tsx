@@ -1,5 +1,6 @@
 "use client";
 
+import { Suspense } from 'react';
 import { packageNameRegex } from "@/lib/regex"
 import { useSearchParams } from "next/navigation";
 import { useForm, Controller } from "react-hook-form";
@@ -49,7 +50,7 @@ const reasonsOptions = [
   { id: "other", label: "It is violating the usage policy in some other way (please specify below)" },
 ];
 
-export default function SupportPage() {
+function SupportPageContent() {
   const searchParams = useSearchParams();
   const urlInquire = searchParams.get("inquire");
   const urlPackageId = searchParams.get("package") || "";
@@ -178,5 +179,13 @@ export default function SupportPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function SupportPage() {
+  return (
+    <Suspense fallback={<div>Loading support form...</div>}>
+      <SupportPageContent />
+    </Suspense>
   );
 }
