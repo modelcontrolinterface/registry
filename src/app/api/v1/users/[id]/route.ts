@@ -58,8 +58,8 @@ export async function PATCH(
 ) {
   try {
     const { id } = await params;
-    const { rls, supabase } = await createDrizzleSupabaseClient();
     const body = await request.json();
+    const { rls, supabase } = await createDrizzleSupabaseClient();
 
     const validation = updateUserSchema.safeParse(body);
     if (!validation.success) {
@@ -136,24 +136,40 @@ export async function DELETE(
       );
     }
 
-    const deletedUsers = await rls((db) =>
-      db.delete(users).where(eq(users.id, id)).returning(),
+    const ownedPackages = await rls((db) =>
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(schema.packages)
+        .where(eq(schema.packages.primary_owner_id, id)),
     );
 
-    if (deletedUsers.length === 0) {
+    if (ownedPackages[0].count > 0) {
       return NextResponse.json(
-        { message: "Failed to delete user profile or user not found" },
-        { status: 500 },
+        {
+          message:
+            "You cannot delete your account because you are the primary owner of one or more packages. Please transfer ownership or delete them first.",
+        },
+        { status: 400 },
       );
     }
 
+    const adminSupabase = createAdminClient();
+    const { error: deleteError } =
+      await adminSupabase.auth.admin.deleteUser(id);
+
+    if (deleteError) {
+      throw new Error(deleteError.message);
+    }
+
     return NextResponse.json(
-      { message: `User '${id}' deleted successfully` },
+      { message: "Account deleted successfully" },
       { status: 200 },
     );
   } catch (err: unknown) {
+    const errorMessage =
+      err instanceof Error ? err.message : "An unknown error occurred";
     return NextResponse.json(
-      { message: "Internal server error", error: String(err) },
+      { message: "Internal server error", error: errorMessage },
       { status: 500 },
     );
   }
