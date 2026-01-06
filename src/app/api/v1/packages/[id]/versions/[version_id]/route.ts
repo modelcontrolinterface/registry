@@ -206,6 +206,7 @@ export const PATCH = async (
         where: eq(packages.id, package_id),
         with: {
           primary_owner: { columns: { id: true } },
+          owners: { with: { user: { columns: { id: true } } } },
         },
       }),
     );
@@ -217,15 +218,16 @@ export const PATCH = async (
       );
     }
 
-    const isPublisher =
-      existingPackageVersion.publisher_id === userData.user.id;
     const isPrimaryOwner = parentPackage.primary_owner.id === userData.user.id;
+    const isCoOwner = parentPackage.owners.some(
+      (owner) => owner.user.id === userData.user.id,
+    );
+    const isOwner = isPrimaryOwner || isCoOwner;
 
-    if (!isPublisher || !isPrimaryOwner) {
+    if (!isOwner) {
       return NextResponse.json(
         {
-          message:
-            "Forbidden: User is neither the publisher of this version nor the primary owner of the package",
+          message: "Forbidden: User is not an owner of this package",
         },
         { status: 403 },
       );

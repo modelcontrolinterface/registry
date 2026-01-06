@@ -294,7 +294,7 @@ const PackageSkeleton = () => (
         <Skeleton className="h-24 w-full" />
         <Skeleton className="h-96 w-full" />
       </div>
-      <Skeleton className="lg:w-96 h-[500px]" />
+      <Skeleton className="lg:w-[400px] h-[500px]" />
     </div>
   </div>
 );

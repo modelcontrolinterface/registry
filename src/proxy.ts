@@ -53,31 +53,35 @@ export const proxy = async (request: NextRequest) => {
   let userId: string | null = null;
   let authError: string | null = null;
 
-  const token = extractTokenFromHeader(request.headers.get("Authorization"));
+  // 1. Try to authenticate via session (cookies) first
+  try {
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
 
-  if (token) {
-    try {
-      const user = await authenticateWithToken(token);
-
-      if (user) {
-        userId = user.id;
-      } else {
-        authError = "Invalid API token";
-      }
-    } catch (error) {
-      authError = "An error occurred during token authentication";
+    if (user) {
+      userId = user.id;
     }
-  } else {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  } catch (error) {
+    authError = "An error occurred during session authentication";
+  }
 
-      if (user) {
-        userId = user.id;
+  // 2. If no user from session, try to authenticate via Authorization header (API token)
+  if (!userId) {
+    const token = extractTokenFromHeader(request.headers.get("Authorization"));
+
+    if (token) {
+      try {
+        const user = await authenticateWithToken(token);
+
+        if (user) {
+          userId = user.id;
+        } else {
+          authError = "Invalid API token";
+        }
+      } catch (error) {
+        authError = "An error occurred during token authentication";
       }
-    } catch (error) {
-      authError = "An error occurred during session authentication";
     }
   }
 

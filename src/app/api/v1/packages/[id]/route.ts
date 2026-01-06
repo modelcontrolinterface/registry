@@ -349,7 +349,7 @@ export const DELETE = async (
 
     if (!isOwner) {
       return NextResponse.json(
-        { message: "Forbidden: User is not an owner of this package" },
+        { message: "Forbidden: User is not the primary owner of this package" },
         { status: 403 },
       );
     }

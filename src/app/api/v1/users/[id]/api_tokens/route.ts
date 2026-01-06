@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { eq, and } from "drizzle-orm";
 import { api_tokens } from "@/db/schema";
-import { NextResponse, NextRequest } from "next/server";
 import { generateApiToken } from "@/lib/utils";
+import { NextResponse, NextRequest } from "next/server";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 
 const createTokenSchema = z.object({

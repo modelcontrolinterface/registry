@@ -1,8 +1,9 @@
 import { z } from "zod";
-import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
+import { eq, sql } from "drizzle-orm";
 import * as schema from "@/db/schema";
 import { NextRequest, NextResponse } from "next/server";
+import { createAdminClient } from "@/lib/supabase/server";
 import { createDrizzleSupabaseClient } from "@/lib/drizzle";
 import { PostgresJsDatabase } from "drizzle-orm/postgres-js";
 
@@ -27,6 +28,15 @@ const getUser = async (
   return { user };
 };
 
+const updateUserSchema = z.object({
+  display_name: z
+    .string()
+    .min(1, "Display name cannot be empty")
+    .max(64, "Display name cannot exceed 64 characters")
+    .optional(),
+  email: z.email("Invalid email format").optional(),
+});
+
 export async function GET(
   _: NextRequest,
   { params }: { params: Promise<{ id: string }> },
@@ -42,15 +52,6 @@ export async function GET(
 
   return NextResponse.json(user);
 }
-
-const updateUserSchema = z.object({
-  display_name: z
-    .string()
-    .min(1, "Display name cannot be empty")
-    .max(64, "Display name cannot exceed 64 characters")
-    .optional(),
-  email: z.email("Invalid email format").optional(),
-});
 
 export async function PATCH(
   request: NextRequest,
@@ -82,9 +83,9 @@ export async function PATCH(
     }
 
     const updateData: {
-      display_name?: string;
       email?: string;
       updated_at: Date;
+      display_name?: string;
     } = {
       updated_at: new Date(),
     };
@@ -159,6 +160,14 @@ export async function DELETE(
 
     if (deleteError) {
       throw new Error(deleteError.message);
+    }
+
+    const deletedUsers = await rls((db) =>
+      db.delete(users).where(eq(users.id, id)).returning(),
+    );
+
+    if (deletedUsers.length === 0) {
+      throw new Error("Failed to delete user record from local database.");
     }
 
     return NextResponse.json(

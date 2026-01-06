@@ -4,6 +4,7 @@ import "./globals.css";
 import Navbar from "@/components/navbar";
 import Footer from "@/components/footer";
 import { Space_Mono } from "next/font/google";
+import { Toaster } from "@/components/ui/sonner";
 
 
 const space = Space_Mono({
@@ -28,6 +29,7 @@ const RootLayout = async ({ children }: { children: React.ReactNode; }) => {
         <Navbar/>
         {children}
         <Footer/>
+        <Toaster />
       </body>
     </html>
   );
