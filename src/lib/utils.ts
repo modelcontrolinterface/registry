@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { twMerge } from "tailwind-merge";
 import { clsx, type ClassValue } from "clsx";
+import { authorRegex } from "@/lib/regex";
 
 export const cn = (...inputs: ClassValue[]) => {
   return twMerge(clsx(inputs));
@@ -11,11 +12,20 @@ export const safeNumber = (v: string | null, fallback = 0) => {
   return Number.isFinite(n) ? n : fallback;
 };
 
-export const formatDownloads = (count: number) => {
-  if (count >= 1000) return `${(count / 1000).toFixed(1)}K`;
-  if (count >= 1000000) return `${(count / 1000000).toFixed(1)}M`;
-  return count.toString();
+export const formatDownloads = (downloads: number) => {
+  if (downloads >= 1_000_000) return `${(downloads / 1_000_000).toFixed(2)}M`;
+  if (downloads >= 1_000) return `${(downloads / 1_000).toFixed(1)}K`;
+  return `${downloads}`;
 };
+
+export const formatBytes = (bytes: number) => {
+  if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)}MB`;
+  if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)}KB`;
+  return `${bytes}B`;
+};
+
+export const textFetcher = (url: string) =>
+  fetch(url).then((res) => res.text());
 
 export const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -97,3 +107,16 @@ export function generateApiToken(): { token: string; hashedToken: string } {
   const hashedToken = hashToken(token);
   return { token, hashedToken };
 }
+
+export const parseAuthorString = (authorString: string) => {
+  const match = authorRegex.exec(authorString);
+  if (!match) {
+    return { name: authorString };
+  }
+  const [, name, email, url] = match;
+  return {
+    name: name.trim(),
+    email: email?.trim(),
+    url: url?.trim(),
+  };
+};

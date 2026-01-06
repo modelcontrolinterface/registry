@@ -1,575 +1,302 @@
 "use client";
 
 import useSWR from "swr";
-import { useState } from "react";
-import { fetcher } from "@/lib/utils";
 import { useParams } from "next/navigation";
-import { formatDownloads } from "@/lib/utils";
-import { authorRegex } from "@/lib/regex"; // Import authorRegex
+import { GetPackageResult } from "@/app/api/v1/packages/[id]/route";
+import {
+  fetcher,
+  formatBytes,
+  textFetcher,
+  formatDownloads,
+  parseAuthorString
+} from "@/lib/utils";
 
 import Link from "next/link";
 import { format } from "date-fns";
 import remarkGfm from "remark-gfm";
 import ReactMarkdown from "react-markdown";
-import {
-  Copy,
-  Scale,
-  Users,
-  Check,
-  Globe,
-  Weight,
-  Github,
-  Package,
-  Download,
-  Calendar,
-  BadgeCheck,
-  ShieldCheck,
-  AlertTriangle,
-} from "lucide-react";
-import { Badge } from "@/components/ui/badge"
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { CopyButton } from "@/components/copy-button";
 import { Separator } from "@/components/ui/separator";
 import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Scale,
+  Weight,
+  Package as PackageIcon,
+  Download,
+  Calendar,
+  BadgeCheck,
+  AlertTriangle,
+} from "lucide-react";
 
-interface User {
-  id: string;
-  display_name: string;
-}
-
-interface PackageVersion {
-  id: string;
-  package_id: string;
-  version: string;
-  is_stable: boolean;
-  size: bigint;
-  publisher_id: string;
-  license: string | null;
-  yanked: boolean;
-  yanked_message: string | null;
-  yanked_at: Date | null;
-  yanked_by_user_id: string | null;
-  downloads: bigint;
-  readme: string;
-  changelog: string | null;
-  abi_version: string | null;
-  digest: string;
-  tarball: string;
-  created_at: Date;
-  updated_at: Date;
-  publisher?: User;
-  authors?: string[]; // Changed to string[]
-}
-
-interface Package {
-  id: string;
-  name: string;
-  categories: ("hook" | "server" | "sandbox" | "interceptor")[];
-  primary_owner: User;
-  default_version: string | null;
-  keywords: string[] | null;
-  description: string | null;
-  homepage: string | null;
-  repository: string | null;
-  is_verified: boolean;
-  is_deprecated: boolean;
-  deprecation_message: string | null;
-  created_at: Date;
-  updated_at: Date;
-  downloads: number;
-}
-
-interface Meta {
-  total_versions: number;
-  total_downloads: number;
-  max_version: string | null;
-  newest_version: string | null;
-  max_stable_version: string | null;
-  yanked_versions: number;
-  total_owners: number;
-  total_audits: number;
-}
-
-interface GetPackageResultExplicit {
-  package: Package;
-  owners: User[];
-  versions: Record<string, PackageVersion>;
-  meta: Meta;
-}
-
-// Function to parse author string
-const parseAuthorString = (authorString: string) => {
-  const match = authorRegex.exec(authorString);
-  if (!match) {
-    return { name: authorString };
-  }
-  const [, name, email, url] = match;
-  return {
-    name: name.trim(),
-    email: email?.trim(),
-    url: url?.trim(),
-  };
-};
+type PackageResult = NonNullable<GetPackageResult>;
+type PackageVersion = PackageResult["versions"][string];
 
 const PackagePage = () => {
   const params = useParams();
-  const fullId = params.id as string;
+  const fullId = decodeURIComponent(params.id as string);
 
-  const [packageId, versionFromUrl] = fullId.includes("%40")
-    ? fullId.split("%40")
+  const [packageId, versionFromUrl] = fullId.includes("@")
+    ? [fullId.substring(0, fullId.lastIndexOf("@")), fullId.substring(fullId.lastIndexOf("@") + 1)]
     : [fullId, undefined];
 
-  const [copied, setCopied] = useState(false);
-
-  const { data, error, isLoading } = useSWR<GetPackageResultExplicit>(
+  const { data, error, isLoading } = useSWR<GetPackageResult>(
     packageId ? `/api/v1/packages/${packageId}` : null,
     fetcher
   );
 
-  const targetVersion = versionFromUrl || data?.package?.default_version;
-  const currentDisplayVersion =
-    data && targetVersion ? data.versions[targetVersion] : null;
+  const pkgData = data ?? null;
+  const targetVersion = versionFromUrl || pkgData?.package?.default_version;
+  const currentDisplayVersion = (pkgData && targetVersion)
+    ? pkgData.versions[targetVersion]
+    : null;
 
-  const readmeContent = currentDisplayVersion?.readme;
-  const readmeLoading = false;
-  const changelogContent = currentDisplayVersion?.changelog;
-  const changelogLoading = false;
+  const { data: readmeData, isLoading: readmeLoading } = useSWR(
+    currentDisplayVersion && packageId
+      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/readme`
+      : null,
+    textFetcher
+  );
 
-  const formatBytes = (bytes: number) => {
-    if (bytes >= 1_000_000) return `${(bytes / 1_000_000).toFixed(2)}MB`;
-    if (bytes >= 1_000) return `${(bytes / 1_000).toFixed(1)}KB`;
-    return `${bytes}B`;
-  };
+  const { data: changelogData, isLoading: changelogLoading } = useSWR(
+    currentDisplayVersion && packageId
+      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/changelog`
+      : null,
+    textFetcher
+  );
 
-  const handleCopy = () => {
-    if (!data) return;
-    const versionSuffix = versionFromUrl ? `@${versionFromUrl}` : "";
-    const installCmd = `mci install ${data.package.id}${versionSuffix}`;
+  if (isLoading) return <PackageSkeleton />;
 
-    try {
-      navigator.clipboard.writeText(installCmd);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch (e) {
-      console.error("copy failed", e);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <div className="flex flex-col lg:flex-row gap-4">
-          <div className="flex-1 space-y-4">
-            <div className="flex gap-6">
-              <Skeleton className="h-24 w-24 rounded-3xl" />
-              <div className="flex-1 space-y-2">
-                <Skeleton className="h-8 w-64" />
-                <Skeleton className="h-4 w-full max-w-md" />
-                <div className="flex gap-2">
-                  <Skeleton className="h-6 w-16" />
-                  <Skeleton className="h-6 w-16" />
-                  <Skeleton className="h-6 w-16" />
-                </div>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
-              <Skeleton className="h-10 w-24" />
-            </div>
-            <Card>
-              <CardContent className="space-y-2 p-6">
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-full" />
-                <Skeleton className="h-4 w-3/4" />
-              </CardContent>
-            </Card>
-          </div>
-          <Skeleton className="h-96 lg:w-96" />
-        </div>
-      </div>
-    );
-  }
-
-  if (error || !data) {
+  if (error || !pkgData || !pkgData.package) {
     return (
       <div className="container mx-auto px-4 py-32 text-center">
         <h1 className="mb-4 text-2xl font-bold">Package Not Found</h1>
         <p className="text-muted-foreground">
-          The package with ID {packageId} could not be found.
+          The package with ID "{packageId}" could not be found.
         </p>
       </div>
     );
   }
 
-  const { package: pkg, owners, versions, meta } = data;
+  const { package: pkg, owners, versions, meta } = pkgData;
 
   return (
     <div className="container mx-auto flex flex-col gap-8 px-4 py-8">
       <div className="flex flex-col gap-4 lg:flex-row">
         <div className="flex flex-1 flex-col gap-4">
-          <div className="flex gap-6">
-            <div className="h-24 w-24 overflow-hidden rounded-3xl bg-muted flex items-center justify-center">
-              <Package className="h-12 w-12 text-muted-foreground" />
+          <header className="space-y-4">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-3xl font-bold">{pkg.name}</h1>
+              {pkg.is_verified && <BadgeCheck className="text-blue-500" />}
             </div>
 
-            <div className="flex-1 space-y-2">
-              <div className="flex flex-wrap items-center gap-3">
-                <h1 className="text-3xl font-bold">{pkg.name}</h1>
-                {pkg.is_verified && (
-                  <BadgeCheck className="text-blue-500" />
-                )}
-              </div>
-              <div className="flex flex-wrap gap-2">
-                {pkg.categories.map((category) => (
-                  <Badge key={category}>{category}</Badge>
-                ))}
-              </div>
-              <p className="mt-1 text-muted-foreground">
-                {pkg.description || "No description available"}
-              </p>
+            <div className="flex flex-wrap gap-2">
+              {pkg.categories.map((cat) => (
+                <Badge key={cat} variant="outline">{cat}</Badge>
+              ))}
+            </div>
 
-              <div className="mt-3 flex flex-wrap gap-2">
-                {pkg.keywords && pkg.keywords.map((k) => (
-                  <Badge
-                    variant="secondary"
-                    key={k}
-                    className="uppercase tracking-wide"
-                  >
+            <p className="text-lg text-muted-foreground">
+              {pkg.description || "No description available"}
+            </p>
+
+            {pkg.keywords.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {pkg.keywords.map((k) => (
+                  <Badge key={k} variant="secondary" className="uppercase text-[10px]">
                     {k}
                   </Badge>
                 ))}
               </div>
-            </div>
-          </div>
+            )}
+          </header>
 
-          <Tabs defaultValue="readme" className="flex-1">
-            <TabsList>
+          <Tabs defaultValue="readme" className="w-full">
+            <TabsList className="justify-start overflow-x-auto">
               <TabsTrigger value="readme">Readme</TabsTrigger>
               <TabsTrigger value="changelog">Changelog</TabsTrigger>
-              <TabsTrigger value="versions">
-                Versions ({meta.total_versions})
-              </TabsTrigger>
-              <TabsTrigger value="contributors">
-                Authors ({currentDisplayVersion?.authors?.length || 0})
-              </TabsTrigger>
+              <TabsTrigger value="versions">Versions ({meta.total_versions})</TabsTrigger>
+              <TabsTrigger value="authors">Authors ({currentDisplayVersion?.authors?.length || 0})</TabsTrigger>
             </TabsList>
 
-            <TabsContent value="readme">
-              <Card>
-                <CardContent className="min-w-full prose prose-sm p-6 dark:prose-invert">
-                  {readmeLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {readmeContent || "# No README available"}
-                    </ReactMarkdown>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="readme" className="mt-4">
+              <MarkdownCard content={readmeData} loading={readmeLoading} fallback="# No README available" />
             </TabsContent>
 
-            <TabsContent value="changelog">
-              <Card>
-                <CardContent className="min-w-full prose prose-sm p-6 dark:prose-invert">
-                  {changelogLoading ? (
-                    <div className="space-y-2">
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-full" />
-                      <Skeleton className="h-4 w-3/4" />
-                    </div>
-                  ) : (
-                    <ReactMarkdown remarkPlugins={[remarkGfm]}>
-                      {changelogContent || "# No changelog available"}
-                    </ReactMarkdown>
-                  )}
-                </CardContent>
-              </Card>
+            <TabsContent value="changelog" className="mt-4">
+              <MarkdownCard content={changelogData} loading={changelogLoading} fallback="# No changelog available" />
             </TabsContent>
 
-            <TabsContent value="versions" className="space-y-2">
-              {Object.values(versions).map((v: PackageVersion) => (
-                <Card key={v.version}>
-                  <CardContent className="space-y-4">
-                    <div className={v.yanked ? "opacity-60 pointer-none" : ""}>
-                      <Link href={`/packages/${packageId}@${v.version}`} className="space-y-2">
-                        <div className="flex items-start justify-between">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="text-lg font-semibold">
-                              v{v.version}
-                            </span>
-                            {v.version === pkg.default_version && (
-                              <Badge variant="default">Default</Badge>
-                            )}
-                            {v.yanked && (
-                              <Badge variant="destructive">Yanked</Badge>
-                            )}
-                            {v.version === meta.max_version && (
-                              <Badge variant="secondary">Max Version</Badge>
-                            )}
-                            {v.version === meta.newest_version && (
-                              <Badge variant="secondary">Newest</Badge>
-                            )}
-                            {v.version === meta.max_stable_version && (
-                              <Badge variant="secondary">Max Stable</Badge>
-                            )}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            {format(new Date(v.created_at), "MMM d, yyyy")}
-                          </div>
-                        </div>
-
-                        {v.yanked && v.yanked_message && (
-                          <Alert variant="destructive" className="mt-2">
-                            <AlertTriangle className="h-4 w-4" />
-                            <AlertDescription>
-                              {v.yanked_message}
-                            </AlertDescription>
-                          </Alert>
-                        )}
-
-                        <div className="mt-1 flex flex-wrap items-center gap-4 text-sm">
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Scale className="h-4 w-4" />
-                            <span className="text-foreground">
-                              {v.license || "Unknown"}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Weight className="h-4 w-4" />
-                            <span className="text-foreground">
-                              {formatBytes(Number(v.size))}
-                            </span>
-                          </div>
-
-                          <div className="flex items-center gap-1 text-muted-foreground">
-                            <Download className="h-4 w-4" />
-                            <span className="text-foreground">
-                              {formatDownloads(Number(v.downloads))}
-                            </span>
-                          </div>
-
-                          {v.publisher && (
-                            <div className="flex items-center gap-1 text-muted-foreground">
-                              <Users className="h-4 w-4" />
-                              <span className="text-foreground">
-                                Published by{" "}
-                                  {v.publisher.display_name}
-                              </span>
-                            </div>
-                          )}
-                        </div>
-                      </Link>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-              {(Object.keys(versions)?.length === 0) && (
-                <Card>
-                  <CardContent className="space-y-2">
-                    <div className="text-center text-muted-foreground py-12">
-                      No versions found.
-                    </div>
-                  </CardContent>
-                </Card>
+            <TabsContent value="versions" className="space-y-3 mt-4">
+              {Object.values(versions).length > 0 ? (
+                Object.values(versions).sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()).map((v) => (
+                  <VersionCard key={v.version} v={v} packageId={packageId} defaultVersion={pkg.default_version || "0.0.0"} meta={meta} />
+                ))
+              ) : (
+                <EmptyState message="No versions found." />
               )}
             </TabsContent>
 
-            <TabsContent value="contributors" className="space-y-2">
-              {currentDisplayVersion?.authors?.map((authorString, index) => {
-                const author = parseAuthorString(authorString);
-                return (
-                  <Card key={index}>
-                    <CardContent className="space-y-2">
-                      <div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2">
-                              <span className="font-semibold">{author.name}</span>
-                            </div>
-                            <div className="mt-1 flex gap-3 text-sm text-muted-foreground">
-                              {author.email && <span>{author.email}</span>}
-                              {author.url && (
-                                <Link
-                                  href={author.url}
-                                  className="text-primary hover:underline"
-                                  target="_blank"
-                                  rel="noreferrer"
-                                >
-                                  {author.url}
-                                </Link>
-                              )}
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                );
-              })}
-              {(!currentDisplayVersion || currentDisplayVersion.authors?.length === 0) && (
-                <Card>
-                  <CardContent className="space-y-4">
-                    <div className="text-center text-muted-foreground py-12">
-                      No authors found for this version.
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
+            <TabsContent value="authors" className="space-y-3 mt-4">
+              {currentDisplayVersion?.authors?.map((authorStr, i) => (
+                <AuthorCard key={i} authorStr={authorStr} />
+              )) || <EmptyState message="No authors found for this version." />}
             </TabsContent>
           </Tabs>
         </div>
 
-        <Card className="h-max lg:w-96">
-          <CardContent className="space-y-4">
-            {pkg.is_deprecated && (
-              <Alert variant="destructive">
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  <strong>This package is deprecated.</strong>{" "}
-                  {pkg.deprecation_message ||
-                    "Please consider using an alternative."}
-                </AlertDescription>
-              </Alert>
-            )}
+        <aside className="lg:w-[400px] flex flex-col">
+          <Card>
+            <CardContent className="space-y-4">
+              {pkg.is_deprecated && (
+                <Alert variant="destructive">
+                  <AlertTriangle className="h-4 w-4" />
+                  <AlertDescription>
+                    <strong>Deprecated:</strong> {pkg.deprecation_message || "Use an alternative."}
+                  </AlertDescription>
+                </Alert>
+              )}
 
-            {currentDisplayVersion ? (
-              <>
-                <div className="rounded-lg bg-background p-1 flex items-center justify-between">
-                  <code className="truncate px-2 text-sm">
-                    mcim install {pkg.id}{versionFromUrl ? `@${versionFromUrl}` : ""}
-                  </code>
-                  <Button variant="outline" size="icon" onClick={handleCopy}>
-                    {copied ? (
-                      <Check className="h-4 w-4 text-primary" />
-                    ) : (
-                      <Copy className="h-4 w-4" />
-                    )}
-                  </Button>
+              {currentDisplayVersion ? (
+                <div className="space-y-4">
+                   <div className="flex items-center gap-2 rounded-md border bg-background pl-4 p-2">
+                    <code className="flex-1 truncate text-xs">
+                      mcim install {pkg.id}{versionFromUrl ? `@${versionFromUrl}` : ""}
+                    </code>
+                    <CopyButton textToCopy={`mcim install ${pkg.id}${versionFromUrl ? `@${versionFromUrl}` : ""}`} />
+                  </div>
+
+                  <SidebarStat icon={<PackageIcon size={16}/>} label="Version" value={`v${currentDisplayVersion.version}`} />
+                  <SidebarStat icon={<Calendar size={16}/>} label="Updated" value={format(new Date(pkg.updated_at), "MMM d, yyyy")} />
+                  <SidebarStat icon={<Scale size={16}/>} label="License" value={currentDisplayVersion.license || "Unknown"} />
+                  <SidebarStat icon={<Download size={16}/>} label="Downloads" value={formatDownloads(Number(currentDisplayVersion.downloads))} />
+                  <SidebarStat icon={<Weight size={16}/>} label="Size" value={formatBytes(Number(currentDisplayVersion.size))} />
                 </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">Version details unavailable.</p>
+              )}
 
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <Package className="h-4 w-4" />
-                    <span>Version</span>
-                  </span>
-                  <span>v{pkg.default_version}</span>
-                </div>
+              <Separator />
 
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <Calendar className="h-4 w-4" />
-                    <span>Updated</span>
-                  </span>
-                  <span>{format(new Date(pkg.updated_at), "MMM d, yyyy")}</span>
-                </div>
+              <div className="space-y-4">
+                <SidebarLinkSection title="Repository" href={pkg.repository} />
+                <SidebarLinkSection title="Homepage" href={pkg.homepage} />
 
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <Scale className="h-4 w-4" />
-                    <span>License</span>
-                  </span>
-                  <span>{currentDisplayVersion.license || "Unknown"}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <Download className="h-4 w-4" />
-                    <span>Downloads</span>
-                  </span>
-                  <span>{formatDownloads(Number(currentDisplayVersion.downloads))}</span>
-                </div>
-
-                <div className="flex justify-between">
-                  <span className="flex items-center gap-2">
-                    <Weight className="h-4 w-4" />
-                    <span>Size</span>
-                  </span>
-                  <span>{formatBytes(Number(currentDisplayVersion.size))}</span>
-                </div>
-
-
-              </>
-            ) : (
-              <Alert>
-                <AlertTriangle className="h-4 w-4" />
-                <AlertDescription>
-                  No default version set. Version-specific information not
-                  available.
-                </AlertDescription>
-              </Alert>
-            )}
-
-            {pkg.repository && (
-              <div className="flex flex-col gap-3">
-                <span className="text-lg font-bold">Repository</span>
-                <span className="flex items-center gap-2 break-all">
-                  <Github className="h-4 w-4 flex-shrink-0" />
-                  <Link
-                    href={pkg.repository}
-                    className="text-primary hover:underline truncate"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {pkg.repository}
-                  </Link>
-                </span>
-              </div>
-            )}
-
-            {pkg.homepage && (
-              <div className="flex flex-col gap-3">
-                <span className="text-lg font-bold">Homepage</span>
-                <span className="flex items-center gap-2 break-all">
-                  <Globe className="h-4 w-4 flex-shrink-0" />
-                  <Link
-                    href={pkg.homepage}
-                    className="text-primary hover:underline truncate"
-                    target="_blank"
-                    rel="noreferrer"
-                  >
-                    {pkg.homepage}
-                  </Link>
-                </span>
-              </div>
-            )}
-
-            {owners.length > 0 && (
-              <div className="flex flex-col gap-3">
-                <span className="text-lg font-bold">Owner(s)</span>
-                <div className="flex flex-col gap-1">
-                  {owners.map((o: User) => (
-                    <Link
-                      key={o.id}
-                      href={`/users/${o.id}`}
-                      className="text-primary hover:underline"
-                    >
-                      {o.display_name}
-                    </Link>
-                  ))}
+                <div className="space-y-2">
+                  <span className="text-sm font-bold">Owners</span>
+                  <div className="flex flex-col gap-1">
+                    {owners.map(o => (
+                      <Link key={o.id} href={`/users/${o.id}`} className="text-sm text-primary hover:underline">
+                        {o.display_name}
+                      </Link>
+                    ))}
+                  </div>
                 </div>
               </div>
-            )}
 
-            <Separator />
-
-            <Button variant="destructive" className="w-full py-6 text-md" asChild>
-              <Link href={`/support?package=${pkg.id}&inquire=violation`}>Report Package</Link>
-            </Button>
-          </CardContent>
-        </Card>
+              <Button variant="destructive" className="w-full" asChild>
+                <Link href={`/support?package=${pkg.id}&inquire=violation`}>Report Package</Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </aside>
       </div>
     </div>
   );
 };
+
+const SidebarStat = ({ icon, label, value }: { icon: React.ReactNode, label: string, value: string }) => (
+  <div className="flex justify-between text-sm">
+    <span className="flex items-center gap-2 text-muted-foreground">{icon} {label}</span>
+    <span className="font-medium">{value}</span>
+  </div>
+);
+
+const SidebarLinkSection = ({ title, href }: { title: string, href: string | null }) => {
+  if (!href) return null;
+  return (
+    <div className="flex flex-col gap-1">
+      <span className="text-sm font-bold">{title}</span>
+      <Link href={href} className="text-sm text-primary hover:underline truncate" target="_blank" rel="noreferrer">
+        {href}
+      </Link>
+    </div>
+  );
+};
+
+const MarkdownCard = ({ content, loading, fallback }: { content?: string, loading: boolean, fallback: string }) => (
+  <Card>
+    <CardContent className="prose prose-sm max-w-none p-6 dark:prose-invert">
+      {loading ? (
+        <div className="space-y-2">
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-full" />
+          <Skeleton className="h-4 w-3/4" />
+        </div>
+      ) : (
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content || fallback}</ReactMarkdown>
+      )}
+    </CardContent>
+  </Card>
+);
+
+const VersionCard = ({ v, packageId, defaultVersion }: { v: PackageVersion, packageId: string, defaultVersion: string, meta: PackageResult['meta'] }) => (
+  <Card className={v.is_yanked ? "opacity-60" : ""}>
+    <CardContent>
+      <Link href={`/packages/${packageId}@${v.version}`} className="block space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span className="font-bold">v{v.version}</span>
+            {v.version === defaultVersion && <Badge>Default</Badge>}
+            {v.is_yanked && <Badge variant="destructive">Yanked</Badge>}
+          </div>
+          <span className="text-sm text-muted-foreground">{format(new Date(v.created_at), "MMM d, yyyy")}</span>
+        </div>
+        <div className="flex gap-4 text-sm text-muted-foreground">
+          <span className="flex items-center gap-1"><Scale size={12}/> {v.license || "N/A"}</span>
+          <span className="flex items-center gap-1"><Weight size={12}/> {formatBytes(Number(v.size))}</span>
+          <span className="flex items-center gap-1"><Download size={12}/> {formatDownloads(Number(v.downloads))}</span>
+        </div>
+      </Link>
+    </CardContent>
+  </Card>
+);
+
+const AuthorCard = ({ authorStr }: { authorStr: string }) => {
+  const author = parseAuthorString(authorStr);
+  return (
+    <Card>
+      <CardContent>
+        <div className="font-semibold">{author.name}</div>
+        <div className="text-sm text-muted-foreground flex gap-3">
+          {author.email && <span>{author.email}</span>}
+          {author.url && <a href={author.url} className="text-primary hover:underline">{author.url}</a>}
+        </div>
+      </CardContent>
+    </Card>
+  );
+};
+
+const EmptyState = ({ message }: { message: string }) => (
+  <Card><CardContent className="p-12 text-center text-muted-foreground">{message}</CardContent></Card>
+);
+
+const PackageSkeleton = () => (
+  <div className="container mx-auto px-4 py-8 space-y-8">
+    <div className="flex flex-col lg:flex-row gap-8">
+      <div className="flex-1 space-y-4">
+        <Skeleton className="h-10 w-1/3" />
+        <Skeleton className="h-6 w-1/4" />
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+      <Skeleton className="lg:w-96 h-[500px]" />
+    </div>
+  </div>
+);
 
 export default PackagePage;
