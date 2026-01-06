@@ -57,14 +57,14 @@ const PackagePage = () => {
 
   const { data: readmeData, isLoading: readmeLoading } = useSWR(
     currentDisplayVersion && packageId
-      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/readme_url`
+      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/readme`
       : null,
     textFetcher
   );
 
   const { data: changelogData, isLoading: changelogLoading } = useSWR(
     currentDisplayVersion && packageId
-      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/changelog_url`
+      ? `/api/v1/packages/${packageId}/versions/${currentDisplayVersion.version}/changelog`
       : null,
     textFetcher
   );
