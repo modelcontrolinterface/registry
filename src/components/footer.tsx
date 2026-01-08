@@ -29,6 +29,7 @@ const Footer = () => {
           <h3 className="text-lg font-semibold mb-3">Get Help</h3>
           <ul className="space-y-2 text-muted-foreground">
             <li><Link href="/support" className="hover:text-foreground">Support</Link></li>
+            <li><Link href="https://modelcontrolinterfaceregistry.statuspage.io/" className="hover:text-foreground">Status Page</Link></li>
             <li><Link href="https://github.com/modelcontrolinterface/registry/issues/new" className="hover:text-foreground">Report a Bug</Link></li>
           </ul>
         </div>
