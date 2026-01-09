@@ -216,7 +216,6 @@ export const package_versions = pgTable(
     tarball_url: text("tarball_url").notNull(),
     size: bigint("size", { mode: "number" }).notNull(),
     digest: varchar("digest", { length: 100 }).notNull(),
-    abi_version: varchar("abi_version", { length: 50 }).notNull(),
     downloads: bigint("downloads", { mode: "number" }).notNull().default(0),
     created_at: timestamp("created_at", { withTimezone: true })
       .notNull()
@@ -240,10 +239,6 @@ export const package_versions = pgTable(
     check(
       "package_versions_version_format",
       sql`${t.version} ~ '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$'`,
-    ),
-    check(
-      "package_versions_abi_version_format",
-      sql`${t.abi_version} ~ '^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-((?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*)(?:\\.(?:0|[1-9]\\d*|\\d*[a-zA-Z-][0-9a-zA-Z-]*))*))?(?:\\+([0-9a-zA-Z-]+(?:\\.[0-9a-zA-Z-]+)*))?$'`,
     ),
     check(
       "package_versions_license_specified",
@@ -309,7 +304,6 @@ export const package_versions = pgTable(
         AND ${t.downloads} = (SELECT downloads FROM package_versions WHERE id = ${t.id})
         AND ${t.created_at} = (SELECT created_at FROM package_versions WHERE id = ${t.id})
         AND ${t.package_id} = (SELECT package_id FROM package_versions WHERE id = ${t.id})
-        AND ${t.abi_version} = (SELECT abi_version FROM package_versions WHERE id = ${t.id})
         AND ${t.publisher_id} = (SELECT publisher_id FROM package_versions WHERE id = ${t.id})
       `,
     }),

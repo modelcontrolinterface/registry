@@ -106,10 +106,6 @@ const createPackageVersionSchema = z.object({
       (file) => ALLOWED_TARBALL_MIMES.includes(file.type),
       `Tarball file must be a valid type (${ALLOWED_TARBALL_MIMES.join(", ")})`,
     ),
-  abi_version: z
-    .string()
-    .regex(semanticVersionRegex, "Invalid semantic version format")
-    .min(1, "ABI version is required"),
 });
 
 export const GET = async (
@@ -169,7 +165,6 @@ export const POST = async (
     const readme_file = formData.get("readme_url") as File | undefined;
     const changelog_file = formData.get("changelog_url") as File | undefined;
     const tarball_file = formData.get("tarball_url") as File;
-    const abi_version = formData.get("abi_version") as string;
 
     let parsedAuthors: any[] = [];
     try {
@@ -189,7 +184,6 @@ export const POST = async (
       readme_url: readme_file,
       changelog_url: changelog_file,
       tarball_url: tarball_file,
-      abi_version,
     });
 
     if (!validation.success) {
@@ -206,7 +200,6 @@ export const POST = async (
       license_url: validatedLicenseFile,
       readme_url: validatedReadme,
       changelog_url: validatedChangelog,
-      abi_version: validatedAbiVersion,
       tarball_url: validatedTarball,
     } = validation.data;
 
@@ -336,7 +329,6 @@ export const POST = async (
           license_url: licenseFileUrl,
           readme_url: readmeUrl,
           changelog_url: changelogUrl,
-          abi_version: validatedAbiVersion,
           digest: tarballDigest,
           tarball_url: tarballUrl,
         })

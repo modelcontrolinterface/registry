@@ -45,7 +45,6 @@ const getPackage = async (id: string) => {
             size: true,
             digest: true,
             tarball_url: true,
-            abi_version: true,
             downloads: true,
             created_at: true,
             updated_at: true,

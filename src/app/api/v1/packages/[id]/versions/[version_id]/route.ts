@@ -149,7 +149,6 @@ export const PATCH = async (
     const formData = await request.formData();
 
     const license = formData.get("license") as string | undefined;
-    const abi_version = formData.get("abi_version") as string | undefined;
     const readme_url_file = formData.get("readme_url") as File | undefined;
     const changelog_url_file = formData.get("changelog_url") as File | undefined;
     const is_yanked_string = formData.get("is_yanked") as string | undefined;
@@ -157,7 +156,6 @@ export const PATCH = async (
 
     const validation = updatePackageVersionSchema.safeParse({
       license,
-      abi_version,
       readme_url_file,
       changelog_url_file,
       is_yanked: is_yanked_string,
