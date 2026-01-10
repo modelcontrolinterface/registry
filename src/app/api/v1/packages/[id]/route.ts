@@ -139,6 +139,7 @@ const packageCategoryEnum = z.enum([
   "hook",
   "server",
   "sandbox",
+  "language",
   "interceptor",
 ]);
 

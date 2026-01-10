@@ -115,9 +115,8 @@ const PackageList = ({ ownerId }: PackageListProps) => {
               <SelectItem value={PackageCategory.Hook}>Hook</SelectItem>
               <SelectItem value={PackageCategory.Server}>Server</SelectItem>
               <SelectItem value={PackageCategory.Sandbox}>Sandbox</SelectItem>
-              <SelectItem value={PackageCategory.Interceptor}>
-                Interceptor
-              </SelectItem>
+              <SelectItem value={PackageCategory.Language}>Language</SelectItem>
+              <SelectItem value={PackageCategory.Interceptor}>Interceptor</SelectItem>
             </SelectContent>
           </Select>
         </div>

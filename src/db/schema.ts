@@ -24,6 +24,7 @@ export const packageCategoryEnum = pgEnum("package_category", [
   "hook",
   "server",
   "sandbox",
+  "language",
   "interceptor",
 ]);
 

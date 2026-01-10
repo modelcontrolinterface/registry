@@ -19,6 +19,7 @@ export enum PackageCategory {
   Hook = "hook",
   Server = "server",
   Sandbox = "sandbox",
+  Language = "language",
   Interceptor = "interceptor",
 }
 
@@ -27,4 +28,3 @@ export enum PackageDeprecated {
   Deprecated = "deprecated",
   NotDeprecated = "not-deprecated",
 }
-
